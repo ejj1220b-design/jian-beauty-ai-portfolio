@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>정지안 — 퍼포먼스 마케터 · SCROLL TO PLAY</title>
+<meta name="description" content="소비자 언어로 전환을 개선하고 AI로 업무 시스템을 만드는 퍼포먼스 마케터, 정지안의 포트폴리오.">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+  @font-face{
+    font-family:'Paperlogy';font-weight:800;
+    src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-8ExtraBold.woff2') format('woff2');
+    font-display:swap;
+  }
+  @font-face{
+    font-family:'Paperlogy';font-weight:600;
+    src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-6SemiBold.woff2') format('woff2');
+    font-display:swap;
+  }
+  :root{
+    --red:#F0301C;
+    --red-soft:#FF8A7C;
+    --ink:#121215;
+    --gray:#85858D;
+    --line:#E9E9E6;
+    --bg:#FFFFFF;
+    --frame-dark:#1A1A1F;
+    --frame-dim:#2A2A31;
+    --strip-bg:#F6F6F3;
+  }
+  /* /g/ 어파인 버전은 이 한 줄만 교체: body[data-ver="a"]{--red:#2B49F2;--red-soft:#8FA0FF} */
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{font-family:"Pretendard Variable",Pretendard,sans-serif;background:var(--bg);color:var(--ink);line-height:1.8;font-size:15.5px}
+  .pl{font-family:'Paperlogy',"Pretendard Variable",sans-serif}
+  button{font-family:inherit;cursor:pointer;background:none;border:none}
+  a{color:inherit}
+  img{display:block}
+  ::selection{background:var(--red);color:#fff}
+  :focus-visible{outline:3px solid var(--red);outline-offset:3px}
+
+  /* ───────────────── 상단 크롬: 스크롤 = 재생 ───────────────── */
+  .bar{
+    position:fixed;top:0;left:0;right:0;z-index:90;
+    background:rgba(255,255,255,.88);backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--line);
+  }
+  .bar-in{display:flex;align-items:center;justify-content:space-between;padding:13px 24px;font-size:12px}
+  .bar .name{font-weight:800;font-size:14px;letter-spacing:-.02em;display:flex;align-items:center;gap:7px}
+  .bar .name .pp{display:inline-flex;gap:2.5px}
+  .bar .name .pp i{width:3.5px;height:13px;background:var(--red);display:block;border-radius:1px}
+  .bar .right{display:flex;align-items:center;gap:18px}
+  .timecode{font-variant-numeric:tabular-nums;letter-spacing:.04em;color:var(--gray);font-weight:500}
+  .timecode b{color:var(--ink)}
+  .state{font-weight:700;letter-spacing:.14em;font-size:10.5px;color:var(--gray)}
+  .state.play{color:var(--red)}
+  .progress{height:3px;position:relative}
+  .progress i{position:absolute;left:0;top:0;bottom:0;width:0%;background:var(--red);transition:width .08s linear}
+
+  /* ───────────────── HERO ───────────────── */
+  .hero{
+    background:#fff;color:var(--ink);
+    min-height:100svh;position:relative;overflow:hidden;
+    display:flex;flex-direction:column;justify-content:center;align-items:center;
+    text-align:center;padding:96px 20px 110px;
+  }
+  .hero .role{margin-bottom:30px;font-size:11.5px;font-weight:600;letter-spacing:.5em;text-indent:.5em;color:var(--gray)}
+  .player{
+    width:min(580px,90vw);aspect-ratio:16/9;background:var(--ink);border-radius:16px;
+    position:relative;display:flex;align-items:center;justify-content:center;
+    box-shadow:0 24px 60px rgba(18,18,21,.16);
+  }
+  .player .name{font-size:clamp(46px,9vw,76px);font-weight:800;letter-spacing:-.03em;color:#fff;display:flex;align-items:center;gap:.12em}
+  .player .name .pp{display:inline-flex;gap:.06em}
+  .player .name .pp i{width:.09em;height:.66em;background:var(--red);display:block;border-radius:.02em}
+  .player .pause{position:absolute;top:15px;right:17px;display:flex;gap:4px}
+  .player .pause i{width:5px;height:16px;background:#fff;opacity:.85;border-radius:1px}
+  .player .ctrl{position:absolute;left:18px;right:18px;bottom:14px}
+  .player .track{height:3px;background:rgba(255,255,255,.22);border-radius:2px;overflow:hidden}
+  .player .track i{display:block;width:2%;height:100%;background:var(--red);transition:width .08s linear}
+  .player .trow{display:flex;justify-content:space-between;margin-top:8px;font-size:10.5px;color:rgba(255,255,255,.78);font-weight:600;letter-spacing:.1em;font-variant-numeric:tabular-nums}
+  .cap{
+    margin-top:44px;
+    font-size:clamp(19px,3.5vw,28px);font-weight:700;letter-spacing:-.015em;line-height:1.45;color:var(--ink);word-break:keep-all;
+  }
+  .cap .thin{font-weight:500}
+  .cap em{font-style:normal;font-weight:700;text-decoration:underline;text-decoration-thickness:4px;text-decoration-color:var(--red);text-underline-offset:7px}
+  .cap small{display:block;margin-top:14px;font-size:.55em;font-weight:500;color:var(--gray)}
+  /* 타임라인 + CTA */
+  .timeline{margin-top:34px;border-top:1px solid var(--line)}
+  .tl{display:grid;grid-template-columns:168px 1fr;gap:16px;padding:16px 0;border-bottom:1px solid var(--line);align-items:baseline}
+  @media(max-width:560px){.tl{grid-template-columns:1fr;gap:3px}}
+  .tl-when{font-size:12px;font-weight:700;color:var(--gray);letter-spacing:.04em;font-variant-numeric:tabular-nums}
+  .tl b{font-size:15.5px;font-weight:700;letter-spacing:-.02em}
+  .tl .tl-role{font-size:13.5px;font-weight:500;color:#3A3A40}
+  .tl small{display:block;font-size:12.5px;color:var(--gray);margin-top:4px;font-weight:400}
+  .cta-row{margin-top:28px;display:flex;gap:10px;flex-wrap:wrap}
+  .btn-solid{background:var(--red);color:#fff;font-weight:700;font-size:13.5px;padding:13px 24px;border-radius:10px;text-decoration:none}
+  .btn-line{border:1.5px solid var(--ink);color:var(--ink);font-weight:600;font-size:13.5px;padding:11.5px 24px;border-radius:10px;text-decoration:none}
+  /* 씬 시놉시스 */
+  .synop{margin-top:12px;font-size:13.5px;color:var(--gray);font-weight:400;max-width:34em}
+  .synop b{color:var(--ink)}
+  .scroll-cue{position:absolute;bottom:34px;left:50%;transform:translateX(-50%);z-index:2;font-size:10.5px;letter-spacing:.3em;font-weight:600;color:var(--gray);display:flex;align-items:center;gap:9px}
+  .scroll-cue .ply{width:0;height:0;border-top:6px solid transparent;border-bottom:6px solid transparent;border-left:9px solid var(--red);display:block;animation:plypulse 1.6s infinite}
+  @keyframes plypulse{0%,100%{opacity:1}50%{opacity:.35}}
+  
+  
+
+  /* ───────────────── 마키 ───────────────── */
+  .marquee{background:var(--ink);color:#fff;overflow:hidden;white-space:nowrap;padding:13px 0;font-size:13px;font-weight:500;letter-spacing:.06em}
+  .marquee .inner{display:inline-block;animation:mq 26s linear infinite}
+  .marquee .inner span{margin:0 26px}
+  .marquee .inner em{color:var(--red);font-style:normal}
+  @keyframes mq{to{transform:translateX(-50%)}}
+
+  /* ───────────────── 섹션 해부학 ───────────────── */
+  section{max-width:1080px;margin:0 auto;padding:110px 24px 0}
+  .sec{display:grid;grid-template-columns:200px 1fr;gap:34px;align-items:start}
+  @media(max-width:760px){.sec{grid-template-columns:1fr;gap:18px}}
+  .sec-label{position:sticky;top:78px;font-size:11.5px;font-weight:700;letter-spacing:.26em;color:var(--gray)}
+  .sec-label b{color:var(--red);margin-right:8px}
+
+  /* ABOUT — 두 줄 + 숫자 3개 */
+  .about h2{font-size:clamp(26px,4.6vw,40px);font-weight:800;line-height:1.32;letter-spacing:-.03em;margin-bottom:22px}
+  .about h2 em{font-style:normal;color:var(--red)}
+  .about p{color:#3A3A40;max-width:36em}
+  .facts{margin-top:34px;display:grid;grid-template-columns:repeat(3,auto);gap:8px 44px;width:fit-content}
+  @media(max-width:640px){.facts{grid-template-columns:1fr 1fr}}
+  .facts div b{display:block;font-size:24px;font-weight:800;letter-spacing:-.03em}
+  .facts div span{font-size:12px;color:var(--gray);font-weight:500}
+
+  /* SCENES 인덱스 */
+  .scene-row{
+    border-top:1px solid var(--line);padding:24px 0;
+    display:grid;grid-template-columns:64px 1fr auto;gap:18px;align-items:baseline;
+    text-decoration:none;transition:padding-left .25s;
+  }
+  .scene-row:hover{padding-left:10px}
+  .scene-row:last-of-type{border-bottom:1px solid var(--line)}
+  .scene-no{font-size:13px;font-weight:700;color:var(--gray);font-variant-numeric:tabular-nums}
+  .scene-title{font-size:clamp(17px,3vw,23px);font-weight:700;letter-spacing:-.025em;line-height:1.35}
+  .scene-title small{display:block;font-size:12.5px;font-weight:500;color:var(--gray);letter-spacing:0;margin-top:4px}
+  .scene-delta{font-size:clamp(15px,2.4vw,20px);font-weight:800;color:var(--red);font-variant-numeric:tabular-nums;letter-spacing:-.02em;white-space:nowrap}
+  .chip{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.14em;color:var(--red);border:1.5px solid var(--red);padding:2px 8px;margin-left:8px;vertical-align:2px}
+  @media(max-width:640px){.scene-row{grid-template-columns:44px 1fr}.scene-delta{grid-column:2}}
+
+  /* ───────────────── 씬 블록 ───────────────── */
+  .scene-block{padding-top:140px}
+  .open-head{max-width:1080px;margin:0 auto 38px;padding:0 24px;display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap}
+  .open-head h3{font-size:clamp(25px,4.6vw,42px);font-weight:800;letter-spacing:-.03em;line-height:1.28;max-width:16em}
+  .open-head h3 .sno{display:block;font-size:13px;font-weight:700;letter-spacing:.24em;color:var(--red);margin-bottom:14px}
+  .open-head h3 em{font-style:normal;color:var(--red)}
+  .open-head .meta{font-size:11.5px;color:var(--gray);font-weight:700;letter-spacing:.1em;text-align:right;line-height:1.7}
+
+  .strip-zone{background:var(--strip-bg);padding:28px 0 0;overflow:hidden}
+  .strip-meta{max-width:1080px;margin:0 auto 12px;padding:0 24px;display:flex;justify-content:flex-end;align-items:baseline}
+  .strip-meta .t{font-size:16px;font-weight:700;letter-spacing:-.02em}
+  .strip-meta .t b{color:var(--red)}
+  .strip-meta .count{font-size:12px;color:var(--gray);font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:.08em}
+
+  .phase-rail{max-width:1080px;margin:0 auto 14px;padding:0 24px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .phase{font-size:11px;font-weight:600;letter-spacing:.1em;color:#B6B6AF;padding:5px 11px;border-radius:99px;border:1px solid transparent;transition:all .25s;display:flex;align-items:center;gap:6px}
+  .phase::before{content:"";width:5px;height:5px;border-radius:50%;background:#CFCFC8;transition:background .25s}
+  .phase.on{color:var(--ink);border-color:var(--ink);background:#fff}
+  .phase.on::before{background:var(--red)}
+  .phase-arrow{color:#CFCFC8;font-size:10px}
+
+  .strip{
+    display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;
+    padding:4px max(24px,calc((100vw - 1080px)/2 + 24px)) 16px;
+    scrollbar-width:thin;scrollbar-color:var(--red) transparent;
+  }
+  .strip::-webkit-scrollbar{height:5px}
+  .strip::-webkit-scrollbar-thumb{background:var(--red)}
+
+  .cut{
+    flex:none;width:250px;aspect-ratio:9/16;scroll-snap-align:center;
+    border-radius:14px;overflow:hidden;position:relative;
+    background:var(--frame-dark);color:#fff;
+    display:flex;flex-direction:column;justify-content:flex-end;
+    padding:20px 18px 22px;
+    transition:transform .25s,box-shadow .25s,opacity .25s;
+    opacity:.55;
+  }
+  .cut.active{opacity:1;transform:translateY(-4px);box-shadow:0 14px 30px rgba(0,0,0,.16)}
+  .cut .no{position:absolute;top:14px;left:16px;font-size:10.5px;font-weight:700;letter-spacing:.16em;opacity:.65;z-index:4}
+  .cut .sub{
+    font-size:17.5px;font-weight:700;line-height:1.42;letter-spacing:-.015em;word-break:keep-all;
+    text-shadow:0 1px 2px rgba(0,0,0,.55),0 4px 16px rgba(0,0,0,.45),0 0 26px rgba(0,0,0,.25);
+    position:relative;z-index:3;
+  }
+  .cut .sub em{font-style:normal;color:var(--red-soft)}
+  .cut .note{font-size:11px;opacity:.65;margin-top:9px;font-weight:500;position:relative;z-index:3}
+
+  .cut.hookframe{background:var(--red)}
+  .cut.hookframe .sub em{color:#fff;text-decoration:underline;text-decoration-thickness:3px;text-underline-offset:5px}
+
+  /* 실제 캡처가 들어가는 컷 */
+  .cut .shotimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top;z-index:1}
+  .cut.shotframe::after{content:"";position:absolute;left:0;right:0;bottom:0;height:58%;background:linear-gradient(transparent,rgba(0,0,0,.78));z-index:2}
+  /* 캡처 미수령 자리표시 */
+  .cut .shot{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#5C5C66;font-size:11.5px;font-weight:700;text-align:center;line-height:1.6;z-index:1}
+  .cut .shot::before{content:"";position:absolute;inset:14px;border:1.5px dashed #3C3C45;border-radius:10px}
+  .cut.dimframe{background:var(--frame-dim)}
+
+  /* 긴 캡처 = 컷 안에서 재생 (세로 패닝) */
+  .pany-wrap{position:absolute;inset:0;overflow:hidden;z-index:1}
+  .pany-wrap img{width:100%;height:auto;animation:panY 16s ease-in-out infinite alternate;animation-play-state:paused}
+  .cut.active .pany-wrap img{animation-play-state:running}
+  @keyframes panY{from{transform:translateY(0)}to{transform:translateY(calc(-100% + 444px))}}
+  /* 가로 캡처 = 좌→우 재생 (가로 패닝) */
+  .panx-wrap{position:absolute;top:20%;bottom:34%;left:0;right:0;overflow:hidden;z-index:1;display:flex;align-items:center;background:rgba(0,0,0,.25)}
+  .panx-wrap img{height:100%;width:auto;max-width:none;animation:panX 16s ease-in-out infinite alternate;animation-play-state:paused}
+  .cut.active .panx-wrap img{animation-play-state:running}
+  @keyframes panX{from{transform:translateX(0)}to{transform:translateX(calc(-100% + 250px))}}
+  /* 소재 2장 나란히 */
+  .duo{position:absolute;inset:0;z-index:1;display:grid;grid-template-columns:1fr 1fr;gap:2px}
+  .duo img{width:100%;height:100%;object-fit:cover;object-position:top}
+  /* 소재 2장 교차 재생 — 각 소재가 풀사이즈로 번갈아 표시 */
+  .fade2{position:absolute;inset:0;z-index:1}
+  .fade2 img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top;animation:xfade 9s infinite;animation-play-state:paused}
+  .fade2 img:nth-child(2){animation-delay:-4.5s}
+  .cut.active .fade2 img{animation-play-state:running}
+  @keyframes xfade{0%,40%{opacity:1}50%,90%{opacity:0}100%{opacity:1}}
+  /* BONUS (Off-duty) */
+  .bonus-intro{font-size:14.5px;color:#3A3A40;margin-bottom:26px}
+  .bonus-intro b{color:var(--red);font-weight:700;letter-spacing:.1em;font-size:11.5px;margin-right:10px}
+  .bonus-card{background:var(--strip-bg);border-radius:16px;padding:26px 24px;margin-bottom:18px}
+  .bonus-card .bc-head{display:flex;justify-content:space-between;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+  .bonus-card .bc-label{font-size:11px;font-weight:700;letter-spacing:.16em;color:var(--gray)}
+  .bonus-card .bc-num{font-size:clamp(22px,3.6vw,30px);font-weight:800;letter-spacing:-.03em;color:var(--red);font-variant-numeric:tabular-nums}
+  .bonus-card .bc-num small{font-size:12px;color:var(--gray);font-weight:700;margin-left:8px;letter-spacing:.02em}
+  .bonus-card .bc-line{font-size:13.5px;color:#3A3A40;max-width:40em;margin-bottom:18px}
+  .blog-shots{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .blog-shots figure img{width:100%;height:auto;border-radius:8px}
+  .blog-shots figcaption{font-size:11px;font-weight:500;color:var(--gray);margin-top:7px;letter-spacing:.04em}
+  .blog-shots figcaption b{color:var(--ink)}
+  .reel-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .reel-grid figure{position:relative}
+  .reel-grid img{width:100%;aspect-ratio:9/14;object-fit:cover;border-radius:10px}
+  .reel-grid .play{position:absolute;top:10px;right:10px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;font-size:9px;display:flex;align-items:center;justify-content:center;padding-left:2px}
+  .reel-grid figcaption{margin-top:8px;font-size:11px;font-weight:500;color:var(--gray);letter-spacing:.02em;line-height:1.5}
+  .reel-grid .views{display:block;font-size:17px;font-weight:700;color:var(--ink);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .reel-grid figure:last-child .views{color:var(--red)}
+  @media(max-width:560px){.blog-shots{grid-template-columns:1fr}.reel-grid{gap:8px}}
+  /* 배경 사진 위 자막 가독용 베일 */
+  .cut .veil{position:absolute;inset:0;background:rgba(0,0,0,.45);z-index:2}
+  /* 확대 버튼 + 라이트박스 */
+  .zoom-btn{position:absolute;top:12px;right:13px;z-index:6;width:30px;height:30px;border-radius:9px;background:rgba(0,0,0,.55);color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center}
+  .cut.before .zoom-btn,.cut.after .zoom-btn{top:38px}
+  #lb{position:fixed;inset:0;z-index:200;background:rgba(10,10,12,.92);display:none;overflow:auto;padding:40px 0;cursor:zoom-out}
+  #lb.show{display:block}
+  #lb img{width:min(92vw,720px);height:auto;margin:0 auto;display:block;border-radius:10px}
+  #lb .lb-hint{position:fixed;top:16px;right:20px;color:#fff;font-size:12px;font-weight:700;letter-spacing:.1em;opacity:.7}
+
+  /* 가짜 버튼 그래픽 */
+  .fakebtn{
+    position:absolute;top:38%;left:18px;right:18px;height:46px;z-index:2;
+    background:#fff;border-radius:9px;color:var(--ink);
+    display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;
+    animation:press 2.4s infinite;
+  }
+  @keyframes press{0%,55%,100%{transform:scale(1)}60%{transform:scale(.96)}65%{transform:scale(1)}}
+  .fakebtn::after{content:"…눌리지 않음";position:absolute;right:-4px;top:-22px;font-size:10.5px;color:var(--red-soft);font-weight:700;opacity:0;animation:nope 2.4s infinite}
+  @keyframes nope{0%,62%{opacity:0}70%,90%{opacity:1}100%{opacity:0}}
+
+  /* 검색창 그래픽 (S.01) */
+  .searchbar{position:absolute;left:18px;right:18px;height:44px;z-index:2;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.3);border-radius:99px;display:flex;align-items:center;gap:9px;padding:0 16px;font-size:13px;font-weight:700;color:rgba(255,255,255,.55)}
+  .searchbar::before{content:"⌕";font-size:16px;opacity:.7}
+  .searchbar.hit{background:#fff;color:var(--ink);border-color:#fff}
+  .searchbar.hit i{display:inline-block;width:2px;height:15px;background:var(--red);animation:blink 1.1s steps(1) infinite;margin-left:1px}
+  @keyframes blink{50%{opacity:0}}
+
+  /* 메신저 컬러 그래픽 (S.04) */
+  .msgrow{position:absolute;left:18px;right:18px;z-index:2;display:flex;justify-content:center;gap:12px}
+  .msgrow span{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;letter-spacing:.02em}
+  .msgrow.mono span{background:#26262D;color:#777}
+  .msgrow.color span{color:#fff}
+  .msgarrow{position:absolute;left:0;right:0;text-align:center;z-index:2;font-size:15px;color:var(--red-soft);font-weight:800}
+
+  /* KPI 다이어그램 (S.06) */
+  .kpiswap{position:absolute;left:18px;right:18px;z-index:2;display:flex;flex-direction:column;gap:10px;align-items:center}
+  .kpiswap .old{font-size:14px;font-weight:800;color:#6A6A74;text-decoration:line-through;text-decoration-thickness:2.5px;text-decoration-color:var(--red-soft);letter-spacing:.08em}
+  .kpiswap .arr{font-size:14px;color:var(--red-soft)}
+  .kpiswap .new{font-size:15px;font-weight:800;color:#fff;background:rgba(240,48,28,.85);padding:8px 16px;border-radius:99px;letter-spacing:.02em}
+
+  /* 밀도 맵 / 연결도 (S.05) */
+  .densmap{position:absolute;left:18px;right:18px;z-index:2;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .densmap div{aspect-ratio:1/1.1;border-radius:10px;border:1.2px dashed rgba(255,255,255,.3);position:relative;overflow:hidden}
+  .densmap small{position:absolute;left:8px;bottom:6px;font-size:9.5px;font-weight:700;color:rgba(255,255,255,.7)}
+  .densmap .full{background:
+    radial-gradient(circle 3px at 20% 25%, #6A6A74 98%, transparent),
+    radial-gradient(circle 3px at 55% 18%, #6A6A74 98%, transparent),
+    radial-gradient(circle 3px at 80% 35%, #6A6A74 98%, transparent),
+    radial-gradient(circle 3px at 35% 45%, #6A6A74 98%, transparent),
+    radial-gradient(circle 3px at 65% 58%, #6A6A74 98%, transparent),
+    radial-gradient(circle 3px at 25% 70%, #6A6A74 98%, transparent),
+    radial-gradient(circle 3px at 50% 80%, #6A6A74 98%, transparent),
+    radial-gradient(circle 3px at 78% 75%, #6A6A74 98%, transparent),
+    radial-gradient(circle 3px at 42% 30%, #6A6A74 98%, transparent)}
+  .densmap .empty{border-color:var(--red-soft)}
+  .densmap .empty::after{content:"";position:absolute;left:42%;top:42%;width:7px;height:7px;border-radius:50%;background:var(--red)}
+  .flow3{position:absolute;left:18px;right:18px;z-index:2;display:flex;flex-direction:column;gap:8px;align-items:center}
+  .flow3 b{font-size:12.5px;font-weight:700;background:rgba(255,255,255,.1);border:1.2px solid rgba(255,255,255,.32);border-radius:99px;padding:7px 16px;color:#fff;white-space:nowrap}
+  .flow3 i{font-style:normal;color:var(--red-soft);font-size:13px}
+
+  /* BEFORE / AFTER 띠 */
+  .cut .ba-tag{position:absolute;top:0;left:0;right:0;z-index:4;text-align:center;font-size:10.5px;font-weight:700;letter-spacing:.18em;padding:7px 0}
+  .cut.before .ba-tag{background:rgba(0,0,0,.55);color:#fff}
+  .cut.after .ba-tag{background:var(--red);color:#fff}
+  .cut.after{outline:3px solid var(--red);outline-offset:-3px}
+
+  /* 와이어프레임 (S.03 BEFORE) */
+  .mini-wf{position:absolute;left:20px;right:20px;background:rgba(255,255,255,.08);border:1.2px dashed rgba(255,255,255,.35);border-radius:6px;z-index:2}
+  .mini-wf small{position:absolute;left:8px;top:5px;font-size:9.5px;color:rgba(255,255,255,.65);font-weight:700}
+  .mini-wf.bad{border-color:var(--red-soft)}.mini-wf.bad small{color:var(--red-soft)}
+
+  /* 채팅 컷 (S.03) */
+  .cut.chatframe{background:#fff;color:var(--ink)}
+  .cut.chatframe .ba-tag{background:var(--ink);color:#fff}
+  .cut.chatframe .bubbles{position:absolute;left:16px;right:16px;top:46%;transform:translateY(-50%);display:flex;flex-direction:column;gap:10px;z-index:2}
+  .cut.chatframe .bb{align-self:flex-start;max-width:92%;background:#F1F1EE;border-radius:15px;border-bottom-left-radius:5px;padding:10px 13px;font-size:12.5px;line-height:1.55;font-weight:500;text-shadow:none}
+  .cut.chatframe .bb b{color:var(--red)}
+  .cut.chatframe .sub{color:var(--ink);text-shadow:none;font-size:13px}
+  .cut.chatframe .note{color:var(--gray);opacity:1}
+
+  /* 결과 컷 */
+  .cut.endframe{background:var(--ink)}
+  .cut.endframe .big{font-size:36px;font-weight:800;letter-spacing:-.03em;line-height:1.1;color:var(--red);position:relative;z-index:3}
+  .cut.endframe .big small{display:block;font-size:12px;color:#999;font-weight:600;margin-top:8px;letter-spacing:.02em}
+
+  /* 싱크 스크립트 바 */
+  .script-bar{background:var(--ink);color:#fff;padding:20px 0 22px}
+  .script-in{max-width:1080px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:96px 1fr;gap:18px;align-items:start;min-height:84px}
+  @media(max-width:640px){.script-in{grid-template-columns:1fr;gap:8px}}
+  .script-cue{font-size:11px;font-weight:700;letter-spacing:.16em;color:var(--red)}
+  .script-cue small{display:block;color:#777;letter-spacing:.1em;margin-top:4px;font-weight:700}
+  .script-text{font-size:14.5px;line-height:1.75;color:#E4E4E0;max-width:46em;transition:opacity .2s}
+  .script-text.fade{opacity:0}
+  .script-text b{color:#fff}
+  .script-text em{font-style:normal;color:var(--red-soft);font-weight:700}
+
+  /* 정독 토글 */
+  .full-script{margin:0}
+  .fs-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;font-size:13px;font-weight:600;letter-spacing:.04em;color:#fff;background:var(--ink);padding:15px 24px;border-top:1px solid rgba(255,255,255,.13)}
+  .fs-btn .ic{width:26px;height:26px;border-radius:50%;border:1.5px solid #fff;display:flex;align-items:center;justify-content:center;font-size:13px;transition:transform .25s}
+  .full-script.open .fs-btn .ic{transform:rotate(45deg)}
+  .fs-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .45s cubic-bezier(.3,.8,.3,1)}
+  .full-script.open .fs-body{grid-template-rows:1fr}
+  .fs-body>div{overflow:hidden}
+  .fs-inner{padding:30px 24px 10px;max-width:688px;margin:0 auto}
+  .fs-inner h4{font-size:12px;letter-spacing:.18em;color:var(--red);font-weight:800;margin:22px 0 8px}
+  .fs-inner h4:first-child{margin-top:0}
+  .fs-inner p{font-size:14.5px;color:#3A3A40;line-height:1.85}
+  .fs-inner p+p{margin-top:8px}
+
+  /* TOOLS */
+  .tools{display:grid;grid-template-columns:1fr 1fr;gap:0 40px;border-top:1px solid var(--line)}
+  .tools .tool{border-bottom:1px solid var(--line);padding:16px 0;display:grid;grid-template-columns:160px 1fr;gap:14px;align-items:baseline}
+  
+  .tools .tool b{font-size:15.5px;font-weight:700;letter-spacing:-.02em}
+  .tools .tool span{font-size:13.5px;color:var(--gray);font-weight:400}
+  @media(max-width:720px){.tools{grid-template-columns:1fr}}
+  @media(max-width:560px){.tools .tool{grid-template-columns:1fr;gap:3px}}
+
+  /* FOOTER */
+  .end{margin-top:130px;background:var(--ink);color:#fff;text-align:center;padding:90px 24px 40px;overflow:hidden}
+  .watch-done{font-size:11.5px;font-weight:700;letter-spacing:.22em;color:var(--red);margin-bottom:22px}
+  .end h2{font-size:clamp(24px,4.6vw,42px);font-weight:800;letter-spacing:-.03em;line-height:1.4}
+  .end h2 em{font-style:normal;color:var(--red)}
+  .contact{margin-top:26px;font-size:12px;color:#888}
+  .contact a{color:#fff;font-weight:600;text-decoration:none;border-bottom:1.5px solid var(--red)}
+  .giant{
+    margin-top:70px;font-size:clamp(110px,24vw,330px);font-weight:800;line-height:.8;letter-spacing:-.02em;
+    color:transparent;-webkit-text-stroke:1.5px rgba(255,255,255,.22);user-select:none;
+  }
+  .fin{margin-top:36px;font-size:11px;color:#666;letter-spacing:.14em;font-weight:600}
+
+  @media (prefers-reduced-motion: reduce){
+    .fakebtn,.fakebtn::after,.marquee .inner,.scroll-cue::after,.hero .bars i,.searchbar.hit i{animation:none}
+    .cut{transition:none}
+    html{scroll-behavior:auto}
+  }
+</style>
+</head>
+<body data-ver="d">
+
+<!-- ═════════ 상단 크롬 ═════════ -->
+<div class="bar">
+  <div class="bar-in">
+    <span class="name pl">정지<span class="pp" aria-hidden="true"><i></i><i></i></span>안</span>
+    <span class="right">
+      <span class="timecode"><b id="tNow">00:00</b> / 05:12</span>
+      <span class="state pl" id="pState">PAUSED</span>
+    </span>
+  </div>
+  <div class="progress"><i id="pFill"></i></div>
+</div>
+
+<!-- ═════════ HERO ═════════ -->
+<div class="hero">
+  <p class="role pl">PORTFOLIO · 2026</p>
+  <h1 class="player" aria-label="정지안">
+    <span class="pause" aria-hidden="true"><i></i><i></i></span>
+    <span class="name pl">정지<span class="pp" aria-hidden="true"><i></i><i></i></span>안</span>
+    <span class="ctrl" aria-hidden="true">
+      <span class="track" style="display:block"><i id="pcFill"></i></span>
+      <span class="trow pl"><span id="pcTime">00:00 / 05:12</span><span id="pcState">PAUSED</span></span>
+    </span>
+  </h1>
+  <p class="cap">전환이 <em>정지</em>한 지점을 찾아 고치는<br><span class="thin">5년 차 퍼포먼스 마케터</span><small>멈추게 하고, 머물게 하고, 누르게 합니다.</small></p>
+  <span class="scroll-cue" aria-hidden="true"><span class="ply"></span>SCROLL TO PLAY</span>
+</div>
+
+
+<!-- ═════════ 01 CAREER ═════════ -->
+<section id="career">
+  <div class="sec">
+    <span class="sec-label pl"><b>01</b>CAREER</span>
+    <div class="about">
+      <h2 class="pl">전환이 막히면 <em>소비자</em>가<br>되어 보는 마케터</h2>
+      <p>병원·법률·화장품 — 망설임이 가장 큰 시장들에서 5년. 전환이 멈추면 소비자의 화면에서 답을 찾고, 콘텐츠의 시작부터 랜딩페이지의 마지막 버튼까지, 퍼널 전체를 고칩니다. </p>
+      <div class="facts">
+        <div><b>5Y</b><span>퍼포먼스 + 그로스</span></div>
+        <div><b>7+</b><span>직접 운영 매체</span></div>
+        <div><b>×5</b><span>최대 전환 개선</span></div>
+      </div>
+      <div class="timeline">
+        <div class="tl">
+          <span class="tl-when pl">현재 재직</span>
+          <div><b>리터니티</b> <span class="tl-role">· 미국·일본 퍼포먼스 마케팅</span><small>미국 광고 운영 · 일본 싱글원 큐텐 메가와리 참여<br>AI 활용 성과 분석 및 운영 시스템 구축</small></div>
+        </div>
+        <div class="tl">
+          <span class="tl-when pl">이전 경력 · 2025.12 입사</span>
+          <div><b>네오커스</b> <span class="tl-role">· 글로벌 퍼포먼스 총괄 · 국내 파트</span><small>성형·피부과 전문 MSO — 일본 · 중국 · 대만 · 싱가포르 Meta · TikTok · GA4 · GTM</small></div>
+        </div>
+        <div class="tl">
+          <span class="tl-when pl">2025.09 — 2025.12</span>
+          <div><b>브랜딩라이즈</b> <span class="tl-role">· 퍼포먼스 마케터</span><small>법률 · 병원 · 소비재 · 화장품 4개 카테고리 퍼포먼스</small></div>
+        </div>
+        <div class="tl">
+          <span class="tl-when pl">2021.03 — 2025.08</span>
+          <div><b>이지엠앤씨</b> <span class="tl-role">· 마케팅 팀장 → 부서장</span><small>MSO 7개 지점 총괄 · 30인 조직 리드 · 병원 업계 첫 TikTok CPA 광고 개척</small></div>
+        </div>
+      </div>
+      <div class="cta-row">
+        <a class="btn-solid" href="resume_jian.pdf" download title="네오커스 재직 당시 이력서입니다. 현재 경력은 위 내용을 참고해 주세요.">이전 이력서 PDF 받기</a>
+        <a class="btn-line" href="mailto:ejj1220b@gmail.com">메일 보내기</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════ 02 SCENES 인덱스 ═════════ -->
+<section id="scenes">
+  <div class="sec">
+    <span class="sec-label pl"><b>02</b>SCENES</span>
+    <div>
+      <a class="scene-row" href="#s01"><span class="scene-no pl">S.01</span><span class="scene-title">강남언니 상담 문의 5배<small>네오커스 · 키워드 · 썸네일 · 랜딩 구조</small></span><span class="scene-delta pl">×5</span></a>
+      <a class="scene-row" href="#s02"><span class="scene-no pl">S.02</span><span class="scene-title">TikTok 크리에이티브 교체<small>네오커스 · 플랫폼 친화적 · 볼륨 유지</small></span><span class="scene-delta pl">CPA −55%</span></a>
+      <a class="scene-row" href="#s03"><span class="scene-no pl">S.03</span><span class="scene-title">변호사 랜딩 전환 개선<small>브랜딩라이즈 · GA 이탈 분석 · CRO</small></span><span class="scene-delta pl">0 → 5+/일</span></a>
+      <a class="scene-row" href="#s04"><span class="scene-no pl">S.04</span><span class="scene-title">GA4 퍼널 CTA 개선<small>네오커스 · GA4 · GTM · 중화권</small></span><span class="scene-delta pl">×2.2</span></a>
+      <a class="scene-row" href="#s05"><span class="scene-no pl">S.05</span><span class="scene-title">PDRN 수분크림 포지셔닝<span class="chip pl">STRATEGY NOTE</span><small>브랜딩라이즈 · 타겟 · 유통 · 브랜딩</small></span><span class="scene-delta pl">채택 → 입점</span></a>
+      <a class="scene-row" href="#s06"><span class="scene-no pl">S.06</span><span class="scene-title">대만 Meta 머신러닝 재학습<small>네오커스 · 학습 데이터 · KPI · 대시보드</small></span><span class="scene-delta pl">리드 ×2</span></a>
+      <a class="scene-row" href="#s07"><span class="scene-no pl">S.07</span><span class="scene-title">AI 활용 광고 분석·운영 시스템<small>리터니티 · 미국 광고 분석 · 일본 큐텐 운영</small></span><span class="scene-delta pl">기준 → 시스템</span></a>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════ S.01 강남언니 ═════════ -->
+<div class="scene-block" id="s01">
+  <div class="open-head">
+    <div>
+      <h3 class="pl"><span class="sno">S.01</span>광고비를 늘리지 않고<br><em>문의를 5배로</em></h3>
+      <p class="synop">키워드 · 썸네일 · 랜딩 구조 변경 → <b>월 문의 8 → 40+</b> · 광고비 동결</p>
+    </div>
+    <span class="meta">네오커스<br>PLATFORM · KEYWORD · CRO</span>
+  </div>
+  <div class="strip-zone" data-scene="s1">
+    <div class="phase-rail" aria-hidden="true">
+      <span class="phase on" data-p="0">문제</span><span class="phase-arrow">→</span>
+      <span class="phase" data-p="1">발견</span><span class="phase-arrow">→</span>
+      <span class="phase" data-p="2">가설</span><span class="phase-arrow">→</span>
+      <span class="phase" data-p="3">수정</span><span class="phase-arrow">→</span>
+      <span class="phase" data-p="4">결과</span>
+    </div>
+    <div class="strip" tabindex="0" aria-label="강남언니 케이스 컷 시트, 좌우로 스크롤">
+
+      <div class="cut hookframe active" data-phase="0">
+        <span class="no pl">CUT 01 · HOOK</span>
+        <p class="sub">병원 소개, 이벤트 페이지,<br>썸네일. 이 셋만 바꿔서<br>문의를 <em>5배</em>로</p>
+        <p class="note">네오커스 · 강남언니 입점 운영</p>
+      </div>
+
+      <div class="cut" data-phase="0">
+        <span class="no pl">CUT 02</span>
+        <div style="position:absolute;top:26%;left:18px;right:18px;z-index:2;display:flex;flex-direction:column;gap:12px">
+          <div><small style="font-size:10px;font-weight:700;color:#8B8B95;letter-spacing:.08em">경쟁 병원 월 상담</small><div style="height:26px;width:100%;background:#3C3C45;border-radius:5px;display:flex;align-items:center;padding:0 9px;font-size:11.5px;font-weight:800;margin-top:4px">50건+</div></div>
+          <div><small style="font-size:10px;font-weight:700;color:var(--red-soft);letter-spacing:.08em">우리 병원</small><div style="height:26px;width:16%;background:var(--red);border-radius:5px;display:flex;align-items:center;padding:0 9px;font-size:11.5px;font-weight:800;margin-top:4px">6~8</div></div>
+        </div>
+        <p class="sub">강남역 피부과가<br>일주일에 문의 <em>한 건</em>?</p>
+        <p class="note">경쟁사의 10~15% 수준</p>
+      </div>
+
+      <div class="cut" data-phase="1">
+        <span class="no pl">CUT 03</span>
+        <div class="searchbar" style="top:30%">뺏주사</div>
+        <div class="searchbar hit" style="top:44%">지방분해<i></i></div>
+        <p class="sub">나부터 '뺏주사'가<br><em>처음 듣는 말</em>이었다</p>
+        <p class="note">검색 키워드는 소비자가 직접 쓰는 언어로</p>
+      </div>
+
+      <div class="cut" data-phase="2">
+        <span class="no pl">CUT 04</span>
+        <img class="shotimg" loading="lazy" src="gangnam-app.jpg" alt="강남언니 앱 소개 이미지" style="object-position:center" onerror="this.style.display='none'">
+        <span class="veil" aria-hidden="true"></span>
+        <p class="sub">여긴 강남언니다.<br>들어온 사람은 이미<br>시술을 <em>마음먹고</em> 있다</p>
+        <p class="note">고관여 타겟 — 설명보다 확신</p>
+      </div>
+
+      <div class="cut shotframe before" data-phase="3">
+        <span class="ba-tag pl">BEFORE · 썸네일</span>
+        <button class="zoom-btn" data-src="thumbnail-before.webp" aria-label="썸네일 수정 전 크게 보기">⛶</button>
+        <img class="shotimg" loading="lazy" src="thumbnail-before.webp" alt="수정 전 썸네일">
+        <p class="sub">2024년 이후<br>바뀐 적 없는 썸네일</p>
+        <p class="note">타 의원 썸네일들에 묻혀 보이지 않는다.</p>
+      </div>
+
+      <div class="cut shotframe after" data-phase="3">
+        <span class="ba-tag pl">AFTER · 썸네일</span>
+        <button class="zoom-btn" data-src="thumbnail-after.webp" aria-label="교체한 썸네일 크게 보기">⛶</button>
+        <img class="shotimg" loading="lazy" src="thumbnail-after.webp" alt="교체한 썸네일">
+        <p class="sub">지금의 기준은<br><em>건강하고 탄탄한</em> 라인</p>
+      </div>
+
+      <div class="cut shotframe before" data-phase="3">
+        <span class="ba-tag pl">BEFORE · 랜딩</span>
+        <button class="zoom-btn" data-src="landing-before.jpg" aria-label="수정 전 랜딩 크게 보기">⛶</button>
+        <div class="pany-wrap"><img loading="lazy" src="landing-before.jpg" alt="수정 전 랜딩 — 시술 설명이 먼저"></div>
+        <p class="sub">전후 사진보다<br>시술 정보가 먼저 나왔다</p>
+      </div>
+
+      <div class="cut shotframe after" data-phase="3">
+        <span class="ba-tag pl">AFTER · 실제 운영</span>
+        <button class="zoom-btn" data-src="landing-after.png" aria-label="수정 후 랜딩 크게 보기">⛶</button>
+        <div class="pany-wrap"><img loading="lazy" src="landing-after.png" alt="수정 후 랜딩 — 공감 체크 다음 곧장 전후 사진"></div>
+        <p class="sub">설명을 걷어내고<br>공감 체크 다음<br>곧장 <em>전후 사진</em></p>
+      </div>
+
+      <div class="cut endframe" data-phase="4">
+        <span class="no pl">CUT 09 · 결과</span>
+        <p class="big pl">8 → 40+<small>월 상담 문의 ×5 · 바비톡 미러링 0 → 10</small></p>
+      </div>
+
+    </div>
+    <div class="script-bar">
+      <div class="script-in">
+        <span class="script-cue pl">SCRIPT<small class="cue-no">CUT 01</small></span>
+        <p class="script-text"></p>
+      </div>
+    </div>
+  </div>
+  <div class="full-script">
+    <button class="fs-btn" aria-expanded="false"><span class="ic" aria-hidden="true">＋</span> 전체 과정을 글로 읽기</button>
+    <div class="fs-body"><div><div class="fs-inner">
+      <h4 class="pl">PROBLEM</h4>
+      <p>동일 시술을 하는 경쟁 병원은 강남언니에서 월 상담 50건 이상, 우리 병원은 6~8건 — 경쟁사의 10~15% 수준이었다. 내부에서는 "광고비를 안 써서"로 정리됐고 추가 예산도 없었다. 강남역에 있는 피부과가 일주일에 문의 한 건이라는 게 이상했다. 들여다보니 이벤트 페이지와 썸네일은 2024년 이후 수정 이력이 없었고, 페이지는 병원 자체 네이밍인 '뺏주사' 중심의 시술 정보 설명 구조였다.</p>
+      <h4 class="pl">발견</h4>
+      <p>나부터 '뺏주사'가 처음 듣는 말이었다. 해외에선 알려졌지만 국내 인지도가 낮아 이름만으로는 지방분해 시술인지 인식되지 않는다. 내가 소비자라면 뭘 검색할까 — '지방분해'였다. 강남언니에도 검색과 알고리즘이 있고, 팀의 목표는 브랜딩이 아니라 환자 확보였다. 키워드를 소비자의 언어로 바꿨다.</p>
+      <h4 class="pl">가설</h4>
+      <p>강남언니 유저는 시술을 확정하고 병원을 고르러 온 고관여 타겟이다. 이들에게 필요한 건 시술 설명이 아니라 "이 병원에서는 효과를 볼 수 있다"는 확신 — 그런데 상세 페이지는 '뺏주사'의 정보를 전달하고 있다. 썸네일 역시 다른 병원들 목록 사이에 직접 넣어 확인해 보니 눈에 들어오지 않았다. 가슴·허리를 강조하는 예전 트렌드의 어두운 컬러감의 비키니 이미지였고, 타 의원 지방분해 썸네일들은 팔뚝 라인과 탄탄한 배 — 건강미, 밝은 이미지 중심이었다.</p>
+      <h4 class="pl">수정</h4>
+      <p>키워드는 '지방분해'로, 썸네일은 현재 트렌드의 건강한 바디라인으로 교체했다. 상세 페이지에서 불필요한 정보는 제외하고 '지방분해'를 타이틀 전면에 올린 뒤, "내 얘기 같다면?" 공감 체크리스트 다음 곧장 3주 경과 전후 사진이 나오는 구조로 변경. 설명 대신 효과에 대한 확신을 먼저 보여주도록 했다.</p>
+      <h4 class="pl">결과</h4>
+      <p>월 상담 문의 8건 → 40건 이상. 강남언니 담당자도 '지방분해' 키워드와 시술 부위 명시가 플랫폼 알고리즘 노출 증가로 이어졌다고 피드백했다. 같은 구성을 바비톡에 미러링해 0건 → 최대 10건. 광고비는 늘리지 않았다.</p>
+      <h4 class="pl">LIMITATION</h4>
+      <p>같은 방식으로 스킨부스터의 수요도 확인됐지만 병원 내부 운영 인력 부족으로 확장하지 못했다. 문의가 늘어난 만큼 부재중도 늘었는데, 즉시 예약이 아니라 신청 후 병원에서 연락해 확정하는 구조라 타이밍을 놓친 유저의 이탈을 막을 수 없었다. 성과는 개선했지만 실행 리소스와 예약 시스템의 한계를 함께 경험한 케이스.</p>
+    </div></div></div>
+  </div>
+</div>
+
+<!-- ═════════ S.02 TikTok ═════════ -->
+<div class="scene-block" id="s02">
+  <div class="open-head">
+    <div>
+      <h3 class="pl"><span class="sno">S.02</span><em>플랫폼의 친화적인 소재</em>로<br>다시 만들었다</h3>
+      <p class="synop">정적 이미지 → 플랫폼 친화적인 영상 소재 교체 → <b>CPA −55%</b> · 볼륨 100% 유지</p>
+    </div>
+    <span class="meta">네오커스<br>TIKTOK · CREATIVE</span>
+  </div>
+  <div class="strip-zone" data-scene="s2">
+    <div class="phase-rail" aria-hidden="true">
+      <span class="phase on" data-p="0">문제</span><span class="phase-arrow">→</span>
+      <span class="phase" data-p="1">가설</span><span class="phase-arrow">→</span>
+      <span class="phase" data-p="2">수정</span><span class="phase-arrow">→</span>
+      <span class="phase" data-p="3">결과</span>
+    </div>
+    <div class="strip" tabindex="0" aria-label="틱톡 케이스 컷 시트, 좌우로 스크롤">
+
+      <div class="cut hookframe active" data-phase="0">
+        <span class="no pl">CUT 01 · HOOK</span>
+        <p class="sub">3초 안에<br><em>'이거 내 얘기잖아'</em> 라고<br>느끼게 만든다</p>
+        <p class="note">네오커스 · TikTok Ads</p>
+      </div>
+
+      <div class="cut shotframe" data-phase="0">
+        <span class="no pl">CUT 02</span>
+        <div class="fade2">
+          <img loading="lazy" src="tiktok-before-1.jpg" alt="기존 정적 소재 1">
+          <img loading="lazy" src="tiktok-before-2.jpg" alt="기존 정적 소재 2">
+        </div>
+        <p class="sub">피드는 움직이는데<br>광고만 <em>멈춰</em> 있었다</p>
+        <p class="note">정적 이미지 2종 · 시술명 중심 카피</p>
+      </div>
+
+      <div class="cut" data-phase="1">
+        <span class="no pl">CUT 03</span>
+        <p class="sub">정보를 다 주면<br>오히려 넘긴다?</p>
+        <p class="note">호기심을 남겨야 멈춘다</p>
+      </div>
+
+      <div class="cut shotframe" data-phase="2">
+        <span class="no pl">CUT 04</span>
+        <div class="fade2">
+          <img loading="lazy" src="tiktok-after-1.jpg" alt="교체한 영상 소재 1">
+          <img loading="lazy" src="tiktok-after-2.jpg" alt="교체한 영상 소재 2">
+        </div>
+        <p class="sub">시술명 대신<br><em>"~하신 분?"</em> —<br>타겟을 지목하는 카피</p>
+        <p class="note">새 소재 2종 · 자동 전환</p>
+      </div>
+
+      <div class="cut" data-phase="2">
+        <span class="no pl">CUT 05</span>
+        <p class="sub">디자이너는 컬러를 보고,<br>마케터는 메시지를 본다</p>
+        <p class="note">데이터로 우선순위를 맞춘 협업</p>
+      </div>
+
+      <div class="cut endframe" data-phase="3">
+        <span class="no pl">CUT 06 · 결과</span>
+        <p class="big pl">CPA −55%<small>전환 볼륨 100% 유지</small></p>
+      </div>
+
+    </div>
+    <div class="script-bar">
+      <div class="script-in">
+        <span class="script-cue pl">SCRIPT<small class="cue-no">CUT 01</small></span>
+        <p class="script-text"></p>
+      </div>
+    </div>
+  </div>
+  <div class="full-script">
+    <button class="fs-btn" aria-expanded="false"><span class="ic" aria-hidden="true">＋</span> 전체 과정을 글로 읽기</button>
+    <div class="fs-body"><div><div class="fs-inner">
+      <h4 class="pl">PROBLEM</h4>
+      <p>소재가 정적 이미지 기반에 시술명 중심 카피였고, 컬러감과 텍스쳐도 틱톡 피드와 어울리지 않았다. 이전 직장에서 틱톡·구글 영상 광고를 먼저 운영하며 체감한 것은 플랫폼에 친화적인 소재는 따로 있다는 것.</p>
+      <h4 class="pl">가설</h4>
+      <p>국내 틱톡 유저는 빠르게 넘기고, 사운드에 반응하고, 정보를 다 주면 오히려 이탈한다. 호기심을 유발하거나 타겟이 "내 얘기네"라고 느끼는 지점이 있어야 한다. 부분 수정이 아니라 플랫폼 피드와 어울리는 광고를 새로 만들기로 했다.</p>
+      <h4 class="pl">수정</h4>
+      <p>정적 이미지를 움직이고 사운드가 들어간 영상으로, 시술명 카피를 "~하신 분?" 타겟 지목형으로, 정보는 최소화했다. 디자인팀과 협업하며 일정이 지연되자 업무 방식을 변경하는 도중에 두 직군의 언어 차이를 발견했다. 디자이너는 컬러와 비주얼을, 마케터는 카피와 메시지를 먼저 본다. 디자인 팀에 알고리즘 작동 방식과 소재 변경의 필요성을 데이터로 설명하며 소재 내의 핵심 카피에 대해 우선순위 싱크로율을 맞췄.</p>
+      <h4 class="pl">결과</h4>
+      <p>CPA −55%, 전환 볼륨은 100% 유지. 매체 세팅이 아니라 소재가 플랫폼과 어울리는지가 변수였던 케이스다. 광고할 매체는 직접 사용해 봐야 한다. 그래야 그 플랫폼 유저에게 친화적인 환경을 알 수 있다.</p>
+    </div></div></div>
+  </div>
+</div>
+
+<!-- ═════════ S.03 변호사 랜딩 ═════════ -->
+<div class="scene-block" id="s03">
+  <div class="open-head">
+    <div>
+      <h3 class="pl"><span class="sno">S.03</span>광고는 데려왔는데,<br><em>페이지가 돌려보내고</em> 있었다</h3>
+      <p class="synop">GA 이탈 분석 → 가짜 버튼 제거 · 해결 사례 최상단 · 비대면 CTA → <b>문의 0 → 일 5+</b></p>
+    </div>
+    <span class="meta">브랜딩라이즈<br>LANDING · CRO</span>
+  </div>
+  <div class="strip-zone" data-scene="s3">
+    <div class="phase-rail" aria-hidden="true">
+      <span class="phase on" data-p="0">문제</span><span class="phase-arrow">→</span>
+      <span class="phase" data-p="1">발견</span><span class="phase-arrow">→</span>
+      <span class="phase" data-p="2">가설</span><span class="phase-arrow">→</span>
+      <span class="phase" data-p="3">수정</span><span class="phase-arrow">→</span>
+      <span class="phase" data-p="4">결과</span>
+    </div>
+    <div class="strip" tabindex="0" aria-label="변호사 랜딩 케이스 컷 시트, 좌우로 스크롤">
+
+      <div class="cut hookframe active" data-phase="0">
+        <span class="no pl">CUT 01 · HOOK</span>
+        <p class="sub">광고는 클릭되는데<br>문의는 <em>0건</em></p>
+        <p class="note">브랜딩라이즈 · 형사 전문 변호사</p>
+      </div>
+
+      <div class="cut dimframe" data-phase="1">
+        <span class="no pl">CUT 02</span>
+        <div style="position:absolute;top:22%;left:18px;right:18px;z-index:2;display:flex;flex-direction:column;gap:9px">
+          <small style="font-size:9.5px;font-weight:700;color:#8B8B95;letter-spacing:.1em">구간별 이탈 · 차트 재구성</small>
+          <div style="display:flex;align-items:center;gap:7px"><div style="height:15px;width:22%;background:#3C3C45;border-radius:3px"></div><small style="font-size:9.5px;color:#8B8B95;font-weight:700">소개</small></div>
+          <div style="display:flex;align-items:center;gap:7px"><div style="height:15px;width:88%;background:var(--red);border-radius:3px"></div><small style="font-size:9.5px;color:var(--red-soft);font-weight:800">⚠</small></div>
+          <div style="display:flex;align-items:center;gap:7px"><div style="height:15px;width:30%;background:#3C3C45;border-radius:3px"></div><small style="font-size:9.5px;color:#8B8B95;font-weight:700">CTA</small></div>
+          <div style="display:flex;align-items:center;gap:7px"><div style="height:15px;width:14%;background:#3C3C45;border-radius:3px"></div><small style="font-size:9.5px;color:#8B8B95;font-weight:700">최하단</small></div>
+        </div>
+        <p class="sub"><em>소재</em> 문제가 아니었다.<br>특정 구간에서<br>이탈이 몰려 있었다</p>
+        <p class="note">진단은 GA 행동 데이터 기반 · 차트는 재구성</p>
+      </div>
+
+      <div class="cut" data-phase="1">
+        <span class="no pl">CUT 03</span>
+        <div class="fakebtn">상담 안내</div>
+        <p class="sub">버튼인 줄 알고 눌렀는데,<br><em>눌리지 않는다</em></p>
+        <p class="note">모바일에서 직접 발견한 가짜 버튼</p>
+      </div>
+
+      <div class="cut" data-phase="2">
+        <span class="no pl">CUT 04</span>
+        <p class="sub">타겟이 원한 건<br>간편함이 아니라<br><em>노출되지 않는 것</em></p>
+        <p class="note">'간편 상담' → '온라인 비대면 상담 신청'</p>
+      </div>
+
+      <div class="cut before" data-phase="3">
+        <span class="ba-tag pl">BEFORE · 구조 재구성</span>
+        <div class="mini-wf" style="top:48px;height:64px"><small>소개 영역</small></div>
+        <div class="mini-wf bad" style="top:122px;height:44px"><small>⚠ 가짜 버튼</small></div>
+        <div class="mini-wf" style="top:176px;height:36px"><small>CTA '간편 상담'</small></div>
+        <div class="mini-wf" style="top:222px;height:32px"><small>해결 사례 — 최하단</small></div>
+        <p class="sub" style="font-size:14px">신뢰의 근거가<br>가장 아래에 있었다</p>
+      </div>
+
+      <div class="cut dimframe after" data-phase="3">
+        <span class="ba-tag pl">AFTER · 실제 운영 화면</span>
+        <button class="zoom-btn" data-src="crimesos-after.jpg" aria-label="수정 후 랜딩 크게 보기">⛶</button>
+        <div class="pany-wrap"><img loading="lazy" src="crimesos-after.jpg" alt="수정 후 crimesos.com — 해결 사례 최상단, 비대면 상담 CTA" style="animation-duration:28s"></div>
+        <p class="sub" style="font-size:14px">해결 사례를 첫 화면으로,<br>CTA는 비대면으로</p>
+      </div>
+
+      <div class="cut chatframe" data-phase="4">
+        <span class="ba-tag pl">3주 뒤 · 대화 재구성 — 수치는 실제</span>
+        <div class="bubbles">
+          <span class="bb">오늘도 문의 <b>5건</b> 들어왔습니다. 요즘은 매일 이래요</span>
+        </div>
+        <p class="note">클라이언트 메시지 · 재구성</p>
+      </div>
+
+      <div class="cut endframe" data-phase="4">
+        <span class="no pl">CUT 08 · 결과</span>
+        <p class="big pl">0 → 5+<small>일 상담 문의 · 월 단위 지속</small></p>
+        <p class="note" style="margin-top:14px">사이트는 지금도 수정 구조<br>그대로 운영 중 (2026.06 확인)</p>
+      </div>
+
+    </div>
+    <div class="script-bar">
+      <div class="script-in">
+        <span class="script-cue pl">SCRIPT<small class="cue-no">CUT 01</small></span>
+        <p class="script-text"></p>
+      </div>
+    </div>
+  </div>
+  <div class="full-script">
+    <button class="fs-btn" aria-expanded="false"><span class="ic" aria-hidden="true">＋</span> 전체 과정을 글로 읽기</button>
+    <div class="fs-body"><div><div class="fs-inner">
+      <h4 class="pl">PROBLEM</h4>
+      <p>형사 전문 변호사 광고를 인수받았을 때 상담 문의는 0건이 이어지고 있었다. 소재 문제로 보고 소재 교체 요청이 반복되던 상황. 하지만 광고 클릭률은 1~2%로 높은 편에 속했다. 사람들은 오고 있었다. 문제는 도착한 다음이었다.</p>
+      <h4 class="pl">발견</h4>
+      <p>GA 행동 데이터에서 특정 구간에 이탈이 몰려 있는 것을 확인했다. 모바일로 직접 접속해 그 구간을 확인하니, 버튼이 아닌데 버튼처럼 보이는 요소가 있었다. 방문자는 누르고, 아무 일도 일어나지 않으니, 떠나지 않았을까? 작은 인터랙션 실패가 사이트 전체의 신뢰를 깎고 있었다.</p>
+      <h4 class="pl">가설</h4>
+      <p>형사 사건 타겟의 1차 감정은 편의가 아니라 노출 불안이다. 경쟁사와 레퍼런스를 조사해 보니 이 시장의 언어는 '간편'이 아니었다. 그리고 방문자가 가장 먼저 확인하고 싶은 것은 "내 사건과 비슷한 걸 해결한 적 있는가"인데, 그 답인 해결 사례가 페이지 최하단에 있었다.</p>
+      <h4 class="pl">수정</h4>
+      <p>해결 사례를 메인 최상단으로 재배치하고, 버튼으로 오인되는 요소는 제거했다. CTA는 '간편 상담'에서 '온라인 비대면 상담 신청'으로 교체해 하단에 고정 — 문구가 타겟의 불안(대면·노출)에 직접 응답하도록 했다. 모션은 화살표 도형 하나만 깜빡이게 해, 시선이 도착할 한 점만 움직이도록 절제했다.</p>
+      <h4 class="pl">결과</h4>
+      <p>상담 문의 0건 → 일 5건 이상, 월 단위 지속. 일시적 반등이 아니라 퇴사 전까지도 계속해서 성과가 유지되었다.</p>
+    </div></div></div>
+  </div>
+</div>
+
+<!-- ═════════ S.04 GA4 CTA ═════════ -->
+<div class="scene-block" id="s04">
+  <div class="open-head">
+    <div>
+      <h3 class="pl"><span class="sno">S.04</span><em>보이지 않으면</em><br>설득할 기회조차 없다</h3>
+      <p class="synop">스크롤 25% 이탈 진단 → CTA 컬러 · 위치 교체 → <b>월 클릭 25 → 56 (×2.2)</b></p>
+    </div>
+    <span class="meta">네오커스<br>GA4 · GTM · 중화권</span>
+  </div>
+  <div class="strip-zone" data-scene="s4">
+    <div class="phase-rail" aria-hidden="true">
+      <span class="phase on" data-p="0">문제</span><span class="phase-arrow">→</span>
+      <span class="phase" data-p="1">가설</span><span class="phase-arrow">→</span>
+      <span class="phase" data-p="2">수정</span><span class="phase-arrow">→</span>
+      <span class="phase" data-p="3">결과</span>
+    </div>
+    <div class="strip" tabindex="0" aria-label="GA4 CTA 케이스 컷 시트, 좌우로 스크롤">
+
+      <div class="cut hookframe active" data-phase="0">
+        <span class="no pl">CUT 01 · HOOK</span>
+        <p class="sub">보이지 않으면<br><em>설득할 기회조차</em> 없다</p>
+        <p class="note">네오커스 · 중화권 홈페이지</p>
+      </div>
+
+      <div class="cut dimframe" data-phase="0">
+        <span class="no pl">CUT 02</span>
+        <div style="position:absolute;top:22%;left:18px;right:18px;z-index:2;display:flex;flex-direction:column;gap:9px">
+          <small style="font-size:9.5px;font-weight:700;color:#8B8B95;letter-spacing:.1em">스크롤 도달 · 재구성</small>
+          <div style="display:flex;align-items:center;gap:7px"><div style="height:15px;width:96%;background:#3C3C45;border-radius:3px"></div></div>
+          <div style="display:flex;align-items:center;gap:7px"><div style="height:15px;width:38%;background:var(--red);border-radius:3px"></div><small style="font-size:9.5px;color:var(--red-soft);font-weight:800">25% ⚠</small></div>
+          <div style="display:flex;align-items:center;gap:7px"><div style="height:15px;width:26%;background:#3C3C45;border-radius:3px"></div><small style="font-size:9.5px;color:#8B8B95;font-weight:700">50%</small></div>
+          <div style="display:flex;align-items:center;gap:7px"><div style="height:15px;width:11%;background:#3C3C45;border-radius:3px"></div><small style="font-size:9.5px;color:#8B8B95;font-weight:700">문의</small></div>
+        </div>
+        <p class="sub">스크롤 <em>25%</em>에서<br>이탈이 몰렸다</p>
+        <p class="note">진단은 GA4 데이터 기반 · 차트는 재구성</p>
+      </div>
+
+      <div class="cut" data-phase="1">
+        <span class="no pl">CUT 03</span>
+        <p class="sub">버튼이 배경에<br><em>묻혀</em> 있었다</p>
+        <p class="note">시각 대비 낮음 · 위치 아래 · 아이콘 전부 검정</p>
+      </div>
+
+      <div class="cut" data-phase="2">
+        <span class="no pl">CUT 04</span>
+        <div class="msgrow mono" style="top:26%"><span>WeChat</span><span>LINE</span><span>WhatsApp</span></div>
+        <p class="msgarrow" style="top:40%">▼</p>
+        <div class="msgrow color" style="top:47%"><span style="background:#07C160">WeChat</span><span style="background:#06C755">LINE</span><span style="background:#25D366">WhatsApp</span></div>
+        <p class="sub">국가별 메신저의<br><em>상징 컬러</em>로</p>
+      </div>
+
+      <div class="cut" data-phase="2">
+        <span class="no pl">CUT 05</span>
+        <p class="sub">PC는 좌측 상단,<br>모바일은 하단 고정</p>
+        <p class="note">스크롤 어디서든 문의 동선 유지</p>
+      </div>
+
+      <div class="cut" data-phase="3">
+        <span class="no pl">CUT 06</span>
+        <button class="zoom-btn" data-src="funnel.png" aria-label="개선 후 GA4 퍼널 크게 보기">⛶</button>
+        <div class="panx-wrap"><img loading="lazy" src="funnel.png" alt="개선 후 GA4 풀 퍼널 차트"></div>
+        <p class="sub">개선 후 퍼널 —<br>이탈 구간에서<br><em>전환이 늘었다</em></p>
+        <p class="note">GA4 풀 퍼널 · 실제 캡처</p>
+      </div>
+
+      <div class="cut endframe" data-phase="3">
+        <span class="no pl">CUT 07 · 결과</span>
+        <p class="big pl">25 → 56<small>월 CTA 클릭 ×2.2</small></p>
+      </div>
+
+    </div>
+    <div class="script-bar">
+      <div class="script-in">
+        <span class="script-cue pl">SCRIPT<small class="cue-no">CUT 01</small></span>
+        <p class="script-text"></p>
+      </div>
+    </div>
+  </div>
+  <div class="full-script">
+    <button class="fs-btn" aria-expanded="false"><span class="ic" aria-hidden="true">＋</span> 전체 과정을 글로 읽기</button>
+    <div class="fs-body"><div><div class="fs-inner">
+      <h4 class="pl">PROBLEM</h4>
+      <p>중화권 홈페이지에서 트래픽 대비 메신저(위챗) 전환이 낮았다. GA4 퍼널을 보면 특히 스크롤 25% 구간에서 이탈이 집중되고 있었다 — 체류자는 있는데 문의가 없었다.</p>
+      <h4 class="pl">가설</h4>
+      <p>CTA 버튼의 시각 대비가 낮고 위치도 아래쪽이라 인지 자체가 안 되고 있는 것이라 판단해 실험했다. 메신저 아이콘은 전부 검정이라 어느 메신저인지 구분도 어려웠다. 내가 고객이 되어 보자. 뭔지 모르는 이 버튼을 낯선 홈페이지에서 눌러 볼까? 아니. 먼저 버튼을 눈에 띄게 만들고, 디바잇별 시선이 머무르는 자리에 고정하면 전환이 개선될 것이라 가설을 세웠다..</p>
+      <h4 class="pl">수정</h4>
+      <p>버튼을 국가별 주요 메신저의 상징 컬러로 교체해 보는 순간 어떤 채널인지 인식되게 했다. 위치는 PC 좌측 상단, 모바일 하단 고정 — 스크롤 어디에 있든 문의 동선이 끊기지 않게 했다.</p>
+      <h4 class="pl">결과</h4>
+      <p>월 CTA 클릭 25건 → 56건(×2.2). 스크롤 25% 이탈 구간에서 메신저 전환이 늘었다. 이탈률 데이터로 시각적 인지 허들을 찾아낼 수 있다 — 직관적 UI는 초기 전환율의 핵심 변수다.</p>
+    </div></div></div>
+  </div>
+</div>
+
+<!-- ═════════ S.05 수분크림 (STRATEGY NOTE) ═════════ -->
+<div class="scene-block" id="s05">
+  <div class="open-head">
+    <div>
+      <h3 class="pl"><span class="sno">S.05</span>넓은 시장의 10등보다,<br><em>좁은 시장의 1등</em></h3>
+      <p class="synop">'건성' 포화 시장 회피 → 아토피·임산부 × 약국 채널 제안 → <b>채택 · 실제 입점</b></p>
+    </div>
+    <span class="meta">브랜딩라이즈<br>STRATEGY NOTE · 기여 범위: 전략 수립~채택</span>
+  </div>
+  <div class="strip-zone" data-scene="s5">
+    <div class="phase-rail" aria-hidden="true">
+      <span class="phase on" data-p="0">문제</span><span class="phase-arrow">→</span>
+      <span class="phase" data-p="1">전략</span><span class="phase-arrow">→</span>
+      <span class="phase" data-p="2">결과</span>
+    </div>
+    <div class="strip" tabindex="0" aria-label="수분크림 전략 컷 시트, 좌우로 스크롤">
+
+      <div class="cut hookframe active" data-phase="0">
+        <span class="no pl">CUT 01 · HOOK</span>
+        <p class="sub">넓은 시장의 10등보다,<br><em>좁은 시장의 1등</em></p>
+        <p class="note">PDRN 수분크림 런칭 전략</p>
+      </div>
+
+      <div class="cut" data-phase="0">
+        <span class="no pl">CUT 02</span>
+        <div class="densmap" style="top:24%">
+          <div class="full"><small>'건성' — 포화</small></div>
+          <div class="empty"><small>아토피·임산부</small></div>
+        </div>
+        <p class="sub">'건성'은 이미<br>모두의 키워드였다</p>
+      </div>
+
+      <div class="cut" data-phase="1">
+        <span class="no pl">CUT 03</span>
+        <div class="flow3" style="top:24%">
+          <b>아토피·임산부 정교 타겟</b><i>↓</i>
+          <b>약국 입점 우선</b><i>↓</i>
+          <b>"약국에서 검증된 성분"</b>
+        </div>
+        <p class="sub">성분을 따지는 사람들에게 —<br><em>아토피·임산부</em>, 그리고 <em>약국</em></p>
+      </div>
+
+      <div class="cut endframe" data-phase="2">
+        <span class="no pl">CUT 04 · 결과</span>
+        <p class="big pl" style="font-size:30px">채택 → 입점<small>퇴사 후 실제 약국 유통 확장</small></p>
+        <p class="note" style="margin-top:14px">집행 수치는 보유하지 않음 —<br>기여는 전략 수립과 채택까지</p>
+      </div>
+
+    </div>
+    <div class="script-bar">
+      <div class="script-in">
+        <span class="script-cue pl">SCRIPT<small class="cue-no">CUT 01</small></span>
+        <p class="script-text"></p>
+      </div>
+    </div>
+  </div>
+  <div class="full-script">
+    <button class="fs-btn" aria-expanded="false"><span class="ic" aria-hidden="true">＋</span> 전체 과정을 글로 읽기</button>
+    <div class="fs-body"><div><div class="fs-inner">
+      <h4 class="pl">PROBLEM</h4>
+      <p>신규 수분크림이 '건성' 키워드였다. 타겟부터 추상적이고, 거대 브랜드들과 경쟁해야 한다. 경쟁 밀도도 입찰 단가도 포화 상태 — 신규 브랜드가 예산으로 진입할 수 있는 시장이 아니었다.</p>
+      <h4 class="pl">전략</h4>
+      <p>포화된 '건성' 대신 성분에 민감한 아토피·임산부·건선 등을 정교 타겟으로 잡고, 약국 입점을 우선하는 유통 전략과 "약국에서 검증된 성분" 브랜딩을 묶어 제안했다. 해외 소비자의 약국 화장품 신뢰 리서치가 근거 — 약국이라는 채널 자체가 검증의 메시지가 된다. 타겟·유통·브랜딩을 한 줄로 꿴 제안이었다.</p>
+      <h4 class="pl">결과</h4>
+      <p>전략은 채택됐고, 퇴사 후 실제 약국 입점과 유통 확장으로 이어졌다. 집행 수치는 퇴사로 인해 알 수 없음 — 이 케이스의 기여 범위는 전략 수립과 채택까지다. 대신 전략이 실물이 됐다는 사실을 남긴다.</p>
+    </div></div></div>
+  </div>
+</div>
+
+<!-- ═════════ S.06 대만 ML ═════════ -->
+<div class="scene-block" id="s06">
+  <div class="open-head">
+    <div>
+      <h3 class="pl"><span class="sno">S.06</span>머신이 배우는 <em>데이터부터</em><br>다시 정의했다</h3>
+      <p class="synop">학습 모수 재정의(스크롤 + 체류) → 체류시간 회복 → <b>리드 ×2</b></p>
+    </div>
+    <span class="meta">네오커스<br>ML · KPI · DASHBOARD</span>
+  </div>
+  <div class="strip-zone" data-scene="s6">
+    <div class="phase-rail" aria-hidden="true">
+      <span class="phase on" data-p="0">문제</span><span class="phase-arrow">→</span>
+      <span class="phase" data-p="1">발견</span><span class="phase-arrow">→</span>
+      <span class="phase" data-p="2">수정</span><span class="phase-arrow">→</span>
+      <span class="phase" data-p="3">결과</span>
+    </div>
+    <div class="strip" tabindex="0" aria-label="대만 머신러닝 케이스 컷 시트, 좌우로 스크롤">
+
+      <div class="cut hookframe active" data-phase="0">
+        <span class="no pl">CUT 01 · HOOK</span>
+        <p class="sub">트래픽은 급증,<br>전환은 <em>0</em></p>
+        <p class="note">대만 Meta 첫 집행 · 위챗 문의 기준</p>
+      </div>
+
+      <div class="cut shotframe" data-phase="0">
+        <span class="no pl">CUT 02</span>
+        <button class="zoom-btn" data-src="dwell-before.png" aria-label="체류시간 차트 크게 보기">⛶</button>
+        <img class="shotimg" loading="lazy" src="dwell-before.png" alt="체류시간 급감 차트">
+        <p class="sub">체류 1분 24초가<br><em>46초</em>로 떨어졌다</p>
+      </div>
+
+      <div class="cut" data-phase="1">
+        <span class="no pl">CUT 03</span>
+        <p class="sub">머신이 <em>이탈 유저</em>를<br>정상 유저로<br>배우고 있었다</p>
+        <p class="note">병행 캠페인 · 동일 픽셀 학습</p>
+      </div>
+
+      <div class="cut" data-phase="2">
+        <span class="no pl">CUT 04</span>
+        <button class="zoom-btn" data-src="lookalike.webp" aria-label="고관여 타겟 정의 크게 보기">⛶</button>
+        <div class="panx-wrap"><img loading="lazy" src="lookalike.webp" alt="스크롤·체류 조건 기반 고관여 타겟 정의"></div>
+        <p class="sub">전환의 기준을<br>'클릭'에서 <em>'관여'</em>로</p>
+        <p class="note">스크롤 25% + 체류 → 고관여 모수 · LAL 확장</p>
+      </div>
+
+      <div class="cut" data-phase="2">
+        <span class="no pl">CUT 05</span>
+        <button class="zoom-btn" data-src="dwell-after.png" aria-label="회복된 체류시간 차트 크게 보기">⛶</button>
+        <div class="panx-wrap"><img loading="lazy" src="dwell-after.png" alt="체류시간 회복 차트"></div>
+        <p class="sub">체류시간이<br><em>1분 24초</em>로 돌아왔다</p>
+        <p class="note">같은 예산 · 모수 정의만 변경</p>
+      </div>
+
+      <div class="cut" data-phase="2">
+        <span class="no pl">CUT 06</span>
+        <button class="zoom-btn" data-src="dashboard.png" aria-label="통합 대시보드 크게 보기">⛶</button>
+        <div class="panx-wrap"><img loading="lazy" src="dashboard.png" alt="광고-CS 통합 대시보드"></div>
+        <p class="sub">다시 틀리지 않도록 —<br>광고와 CS를<br><em>한 시트</em>에서</p>
+        <p class="note">KPI: CTR → 메신저 진입률 · Sheets · Apps Script</p>
+      </div>
+
+      <div class="cut endframe" data-phase="3">
+        <span class="no pl">CUT 07 · 결과</span>
+        <p class="big pl">리드 ×2<small>체류시간 46초 → 1분 24초 회복</small></p>
+      </div>
+
+    </div>
+    <div class="script-bar">
+      <div class="script-in">
+        <span class="script-cue pl">SCRIPT<small class="cue-no">CUT 01</small></span>
+        <p class="script-text"></p>
+      </div>
+    </div>
+  </div>
+  <div class="full-script">
+    <button class="fs-btn" aria-expanded="false"><span class="ic" aria-hidden="true">＋</span> 전체 과정을 글로 읽기</button>
+    <div class="fs-body"><div><div class="fs-inner">
+      <h4 class="pl">PROBLEM</h4>
+      <p>대만 Meta 첫 집행 후 트래픽은 급증했는데 위챗 문의 전환은 0이었다. 평균 체류시간은 1분 24초에서 46초로 급감 — 들어오는 사람은 많아졌는데, 우리를 더 알고 싶어하지 않는다.</p>
+      <h4 class="pl">발견</h4>
+      <p>트래픽 캠페인과 전환 캠페인을 병행하며 동일 픽셀 이벤트로 학습시키고 있었다. 저관여 클릭까지 전환 신호로 쌓이며 머신러닝이 이탈 유저를 정상 유저로 인식하는 구조 — Meta 측도 "대만은 소모성 클릭이 많다"고 답했다. 트래픽 광고를 중단해 봤지만 개선이 없었고, 유입 조절이 아니라 학습 데이터 자체의 문제로 확정했다.</p>
+      <h4 class="pl">수정</h4>
+      <p>빠르게 이탈하는 사람들이 관심 없는 사람들이라면, 이탈하지 않는 사람들이 고관여 유저다. 스크롤 25%와 체류시간 조건으로 고관여 모수를 직접 정의해 맞춤 타겟을 다시 만들고, 그 위에서 유사 타겟(LAL)을 단계적으로 확장했다. 함께 KPI도 재정의했다 — 최종 문의 전환은 팀 간 정의와 책임이 엉키지만, 메신저 진입률은 광고의 기여를 명확하게 측정할 수 있다. CS가 어드민 상담란에 유입 메신저를 기입하면 광고 데이터와 연결되는 통합 대시보드도 직접 만들어(Sheets·Apps Script), 리드의 질이 떨어지면 다음 날 확인되는 피드백 구조를 갖췄다.</p>
+      <h4 class="pl">결과</h4>
+      <p>방문자 볼륨은 줄었지만 리드는 2배, 체류시간은 1분 24초로 회복됐다. 트래픽은 성과가 아니라 재료다 — 질 낮은 트래픽은 머신러닝을 망가뜨린다. 머신러닝은 자동이 아니라 방향 설정이 필요하다. 다마고치처럼, 잘못 먹이면 계속 틀린 방향으로 자란다.</p>
+      <h4 class="pl">LIMITATION</h4>
+      <p>타겟이 좁아지며 광고 소진 속도가 줄었다 — 빠른 모객이 필요한 시점엔 비효율로 보일 수 있다. 체류·스크롤 기준의 단계적 완화와, 볼륨 확보용·고관여 타겟 2트랙 운영으로 대응했다.</p>
+    </div></div></div>
+  </div>
+</div>
+
+<!-- ═════════ S.07 AI 광고 운영 시스템 ═════════ -->
+<div class="scene-block" id="s07">
+  <div class="open-head">
+    <div>
+      <h3 class="pl"><span class="sno">S.07</span>매번 하던 판단을,<br><em>반복해서 쓸 수 있는 시스템으로</em></h3>
+      <p class="synop">업무 문제 정의 → 판단 기준 설계 → AI 활용 구현 → <b>광고 분석·웹 운영 도구 구축</b></p>
+    </div>
+    <span class="meta">리터니티<br>AI · DATA · OPERATIONS</span>
+  </div>
+  <div class="strip-zone" data-scene="s7">
+    <div class="phase-rail" aria-hidden="true">
+      <span class="phase on" data-p="0">문제</span><span class="phase-arrow">→</span>
+      <span class="phase" data-p="1">설계</span><span class="phase-arrow">→</span>
+      <span class="phase" data-p="2">구현</span><span class="phase-arrow">→</span>
+      <span class="phase" data-p="3">검토</span>
+    </div>
+    <div class="strip" tabindex="0" aria-label="AI 광고 운영 시스템 컷 시트, 좌우로 스크롤">
+      <div class="cut hookframe active" data-phase="0">
+        <span class="no pl">CUT 01 · HOOK</span>
+        <p class="sub">무엇을 멈추고,<br>무엇을 더 볼지.<br><em>판단 기준부터 만들었다</em></p>
+        <p class="note">리터니티 · AI 활용 업무 시스템 구축</p>
+      </div>
+      <div class="cut shotframe" data-phase="0">
+        <span class="no pl">CUT 02 · 웹 운영 콘솔</span>
+        <button class="zoom-btn" data-src="returnity-console-public.png" aria-label="일본 큐텐 웹 운영 콘솔 공개용 편집본 크게 보기">⛶</button>
+        <img class="shotimg" loading="lazy" src="returnity-console-public.png" alt="싱글원 일본 큐텐 운영 콘솔. 업무 메뉴, 예산 및 성과 카드, 일별 그래프를 갖춘 보고 보드. 내부 수치 비공개" style="object-fit:contain;object-position:center 22%">
+        <p class="sub">흩어진 성과를 모아<br><em>한 화면에서 판단하도록</em></p>
+        <p class="note">일본 큐텐 운영 콘솔 · 수치 비공개<br>우측 상단 ⛶ 버튼으로 확대</p>
+      </div>
+      <div class="cut" data-phase="1">
+        <span class="no pl">CUT 03</span>
+        <div class="flow3" style="top:22%"><b>문제 · 판단 기준 정의</b><i>↓</i><b>AI로 코드 구현</b><i>↓</i><b>결과 검토 · 조건 수정</b></div>
+        <p class="sub">내가 정한 운영 기준을<br><em>AI와 함께 도구로</em></p>
+      </div>
+      <div class="cut" data-phase="2">
+        <span class="no pl">CUT 04</span>
+        <div class="flow3" style="top:20%"><b>중단 검토</b><b>유지 · 확장 검토</b><b>데이터 부족 · 판단 보류</b></div>
+        <p class="sub">아직 모르는 소재는<br><em>실패로 분류하지 않게</em></p>
+        <p class="note">지출 · 집행 기간 · 구매 표본 함께 확인</p>
+      </div>
+      <div class="cut shotframe" data-phase="2">
+        <span class="no pl">CUT 05 · 소재 진단</span>
+        <button class="zoom-btn" data-src="returnity-diagnosis-public.png" aria-label="소재별 진단과 메모 화면 공개용 편집본 크게 보기">⛶</button>
+        <img class="shotimg" loading="lazy" src="returnity-diagnosis-public.png" alt="소재별 잘된 점과 고치면 좋을 점, 광고 보기 버튼과 담당자 메모 입력란이 있는 웹 진단 화면. 소재명과 성과 수치 비공개" style="object-fit:contain;object-position:center 22%">
+        <p class="sub">숫자를 읽고 끝내지 않게.<br><em>진단과 수정 메모를 함께</em></p>
+        <p class="note">소재별 개선 단서 · 담당자 검토 기록<br>우측 상단 ⛶ 버튼으로 확대</p>
+      </div>
+      <div class="cut shotframe" data-phase="2">
+        <span class="no pl">CUT 06 · 액션과 흐름</span>
+        <button class="zoom-btn" data-src="returnity-flow-public.png" aria-label="액션 시점과 지표별 흐름 화면 공개용 편집본 크게 보기">⛶</button>
+        <img class="shotimg" loading="lazy" src="returnity-flow-public.png" alt="구매·유입·장바구니 등 지표 선택 버튼과 액션 시점을 표시한 일본 큐텐 일별 추이 그래프. 성과 수치 비공개" style="object-fit:contain;object-position:center 25%">
+        <p class="sub">무엇을 바꿨는지,<br><em>지표 흐름과 함께 확인</em></p>
+        <p class="note">지표 전환 · 액션 전후 추이 검토<br>우측 상단 ⛶ 버튼으로 확대</p>
+      </div>
+      <div class="cut" data-phase="3">
+        <span class="no pl">CUT 07</span>
+        <p class="sub">새 데이터를 받았는데<br>과거 결과를 보고 있었다.<br><em>수집 시각과 기간을 명시</em></p>
+        <p class="note">폴더 이름순 선택 오류를 수정한 개선 사례</p>
+      </div>
+      <div class="cut endframe" data-phase="3">
+        <span class="no pl">CUT 08 · 결과</span>
+        <p class="big pl" style="font-size:30px">기준 → 시스템<small>미국 광고 분석 · 일본 웹 운영 콘솔</small></p>
+        <p class="note">수집 → 분류 → 검토 → 다음 테스트<br>최종 집행 판단은 담당자가 확인</p>
+      </div>
+    </div>
+    <div class="script-bar"><div class="script-in">
+      <span class="script-cue pl">SCRIPT<small class="cue-no">CUT 01</small></span>
+      <p class="script-text"></p>
+    </div></div>
+  </div>
+  <div class="full-script">
+    <button class="fs-btn" aria-expanded="false"><span class="ic" aria-hidden="true">＋</span> 전체 과정을 글로 읽기</button>
+    <div class="fs-body"><div><div class="fs-inner">
+      <h4 class="pl">PROBLEM</h4>
+      <p>소재가 늘어날수록 무엇을 중단하고, 무엇을 더 지켜보고, 어떤 소구를 다음 테스트로 이어갈지 반복해서 판단해야 했다. 구매가 몇 건뿐인 신규 소재와 오래 집행한 소재를 같은 ROAS 기준으로만 비교하기 어렵고, 성과 확인과 액션 기록이 흩어지면 무엇을 바꾼 뒤 어떤 흐름이 나타났는지 다시 확인하기도 어려웠다.</p>
+      <h4 class="pl">나의 역할</h4>
+      <p>미국 광고 운영과 일본 싱글원 큐텐 메가와리에 참여하며, 업무에 필요한 판단 기준·화면 구성·예외 조건을 정리하고 AI의 도움으로 구현했다. 어떤 지표를 함께 볼지, 어떤 경우에 판단을 보류할지, 진단 결과를 다음 수정으로 어떻게 연결할지를 설계하고 실제 업무 맥락에 맞는지 검토했다.</p>
+      <h4 class="pl">미국 광고 분석 도구</h4>
+      <p>소재별 지출·집행 기간·구매 건수를 함께 보고 중단·유지·확장 검토와 데이터 부족을 구분했다. 기간 합계뿐 아니라 일별 구매 흐름을 확인해 꾸준히 구매가 발생하는 소재와 추가 검토할 후보를 찾도록 했다. 인하우스와 대행사의 성과를 나눠 비교하고, 이미 꺼진 광고가 중단 제안에 반복해서 나오지 않도록 현재 운영 상태도 반영했다.</p>
+      <h4 class="pl">일본 큐텐 웹 운영 콘솔</h4>
+      <p>미국 광고 분석 도구와 별도로, 일본 싱글원 운영을 위한 웹 콘솔을 구성했다. 예산·광고비·유입·장바구니·구매를 한 화면에서 확인하고, 일별 성과·목표별 성과·타겟·상품 매출을 업무 메뉴로 나눴다. 지표를 전환해 추이를 보고 액션 시점을 함께 표시해, 변경 이후의 흐름을 확인할 수 있도록 했다. 리뷰와 가설·액션 기록도 업무 흐름 안에서 관리하도록 구성했다.</p>
+      <h4 class="pl">소재 진단과 다음 수정</h4>
+      <p>소재별로 잘된 점과 고치면 좋을 점을 제시하고, 광고 확인 버튼과 담당자 메모 입력란을 함께 배치했다. 클릭·시청·구매 지표에서 발견한 단서를 영상 도입부, 중간 이탈 구간, 랜딩 점검 등 다음 검토 항목으로 연결했다. 진단은 수정 가설을 세우는 보조 자료이며, 담당자가 소재와 운영 맥락을 확인한 뒤 판단한다.</p>
+      <h4 class="pl">검토와 개선</h4>
+      <p>새로 수집한 데이터 대신 과거 결과가 선택되는 문제를 발견해, 폴더 이름순이 아닌 성과 파일 수정 시각을 기준으로 최신 데이터를 선택하도록 수정했다. 보고서에도 조회 기간을 표시해 어떤 데이터를 보고 있는지 확인할 수 있게 했다. 분석 결과와 실제 계정 변경은 분리하고, 계정 변경 대상은 담당 범위 안의 캠페인으로 제한했다.</p>
+      <h4 class="pl">결과와 기여 범위</h4>
+      <p>반복하던 성과 확인과 운영 판단을 수집 → 분류 → 검토 → 다음 테스트로 이어지는 도구로 구현했다. 판단 기준과 예외 조건을 코드에 담고, 성과 요약·소재 진단·메모·액션 시점 확인을 웹 화면으로 구성해 지표 확인 이후의 검토와 기록까지 이어지도록 했다.</p>
+      <h4 class="pl">LIMITATION</h4>
+      <p>표본이 적거나 전환 반영이 늦은 소재는 추가 확인이 필요하다. 날짜별 구매의 꾸준함도 다음 성과를 보장하지 않으므로 검토 단서로 활용한다. 소재의 소구와 형식이 함께 달라졌다면 효과를 분리해 다시 검증하고, 최종 집행은 프로모션·재고·수익성 등 운영 맥락과 함께 판단한다. 액션 전후의 지표 변화만으로 해당 액션의 효과를 단정하지 않는다.</p>
+      <h4 class="pl">업무 자료</h4>
+      <p>보고 보드·소재 진단·액션 전후 흐름은 실제 업무 화면을 바탕으로 편집한 공개용 이미지다. 메뉴와 기능 구성을 보여주기 위해 예산·성과 수치·소재명 등 내부 정보를 가렸으며, 화면의 수치나 그래프를 성과 개선의 증거로 제시한 것은 아니다.</p>
+      <p><a href="https://github.com/ejj1220b-design/project" target="_blank" rel="noopener noreferrer">광고 분석 도구 소스와 구현 기록 보기 ↗</a></p>
+    </div></div></div>
+  </div>
+</div>
+
+<!-- ═════════ 03 BONUS ═════════ -->
+<section id="bonus">
+  <div class="sec">
+    <span class="sec-label pl"><b>03</b>BONUS</span>
+    <div>
+      <p class="bonus-intro"><b class="pl">BONUS CLIP</b> 다양한 업종, 다양한 채널, 다양한 소비자, 다양한 검증 — 회사 밖에서도 같은 방식으로 실험합니다. 가설을 세우고, 발행하고, 숫자로 확인합니다.</p>
+
+      <div class="bonus-card">
+        <div class="bc-head">
+          <span class="bc-label pl">NAVER BLOG · 시즈널 키워드 선점</span>
+          <span class="bc-num pl">78 → <span class="countup" data-count="1225">1,225</span><small>/day · ×15 · 약 1개월</small></span>
+        </div>
+        <p class="bc-line">시즌을 먼저 치는 쪽이 알고리즘을 선점하지 않을까? — 3월 초, 네이버 홈 노출 알고리즘을 연구해 벚꽃 명소 글로 첫 폭등을 만들고, 4월 콘서트 글을 3월 말에 발행해 같은 가설을 재검증했다. 두 번 다 폭등, 현재 일 1,300~1,500명대 유지.</p>
+        <div class="blog-shots">
+          <figure><img loading="lazy" src="blog-before.png" alt="개선 전 블로그 방문자"><figcaption>BEFORE · 2026.03.16</figcaption></figure>
+          <figure><img loading="lazy" src="blog-after.png" alt="개선 후 블로그 방문자"><figcaption>AFTER · 2026.04.18</figcaption></figure>
+        </div>
+      </div>
+
+      <div class="bonus-card">
+        <div class="bc-head">
+          <span class="bc-label pl">INSTAGRAM REELS · 타이밍 실험</span>
+                  </div>
+        <p class="bc-line">'언제'가 '무엇'만큼 중요하다 — 하이디라오는 주말에 가고 싶어지는 핫플. 금요일 10AM 발행으로 주말 수요를 정확히 태웠다.</p>
+        <div class="reel-grid">
+          <figure><img loading="lazy" src="reels-ramen.jpg" alt="가성비 라멘 릴스"><span class="play" aria-hidden="true">▶</span><figcaption>3/2 · 가성비 라멘<span class="views countup" data-count="393">393</span>첫 발행</figcaption></figure>
+          <figure><img loading="lazy" src="reels-starbucks.jpg" alt="스타벅스 슈크림 릴스"><span class="play" aria-hidden="true">▶</span><figcaption>3/4 · 스타벅스 슈크림<span class="views countup" data-count="2201">2,201</span>+459%</figcaption></figure>
+          <figure><img loading="lazy" src="reels-haidilao.jpg" alt="하이디라오 릴스"><span class="play" aria-hidden="true">▶</span><figcaption>3/6 · 하이디라오<span class="views countup" data-count="20000">20,000</span>금요일 발행 · 주말 수요</figcaption></figure>
+        </div>
+      </div>
+
+      <div class="bonus-card">
+        <div class="bc-head">
+          <span class="bc-label pl">K-BEAUTY SHORT-FORM · 해외 반응 리서치</span>
+        </div>
+        <p class="bc-line" style="margin-bottom:0">TikTok(영어권)·샤오홍슈(중화권) 채널을 타겟별로 나눠 직접 기획·제작·운영하며 훅 구간 이탈, 완주율, SEO 알고리즘, 국가별 반응 차이를 확인하는 중 — 해외 소비자가 <b style="color:var(--red)">어떤 장면에서 멈추고, 어디서 이탈하는지</b>를 광고 소재 감각의 재료로 쌓고 있습니다.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════ 04 TOOLS ═════════ -->
+<section id="tools">
+  <div class="sec">
+    <span class="sec-label pl"><b>04</b>TOOLS</span>
+    <div class="tools">
+      <div class="tool"><b>Meta Ads</b><span>4개국 글로벌 캠페인 운영 · 고관여 모수 정의 · LAL 설계</span></div>
+      <div class="tool"><b>TikTok Ads</b><span>소재 교체로 CPA −55% · 볼륨 유지</span></div>
+      <div class="tool"><b>GA4 · GTM</b><span>퍼널 이탈 분석 · 이벤트 설계 · 전환 선행지표 추적</span></div>
+      <div class="tool"><b>Google Ads</b><span>사내 첫 동영상 캠페인 도입</span></div>
+      <div class="tool"><b>Sheets · Apps Script</b><span>광고-CS 통합 대시보드 직접 제작 · 보고 자동화</span></div>
+      <div class="tool"><b>Zapier · Make</b><span>반복 업무 자동화 워크플로우 구축</span></div>
+      <div class="tool"><b>Photoshop · Illustrator</b><span>배너·이미지 광고 소재 직접 제작</span></div>
+      <div class="tool"><b>Premiere · CapCut</b><span>숏폼 소재 직접 제작</span></div>
+      <div class="tool"><b>AI · 업무 시스템</b><span>운영 기준 정의 · AI 활용 구현 · 성과 분석과 예외 조건 검토</span></div>
+      <div class="tool"><b>Certificates</b><span>검색광고마케터 1급 · SNS광고마케터 1급 · Google GAIQ</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════ FOOTER ═════════ -->
+<div class="end">
+  <p class="watch-done pl">WATCHED 05:12 / 05:12</p>
+  <h2 class="pl">여기까지 보셨다면, <em>완주율 100%.</em><br>전환까지 3초 — 버튼은 바로 아래에 있습니다.</h2>
+  <div class="cta-row" style="justify-content:center">
+    <a class="btn-solid" href="mailto:ejj1220b@gmail.com">메일 보내기</a>
+    <a class="btn-line" style="border-color:#fff;color:#fff" href="tel:01023188323">전화 걸기</a>
+  </div>
+  <p class="contact"><a href="mailto:ejj1220b@gmail.com">ejj1220b@gmail.com</a> · 010-2318-8323</p>
+  <div class="giant pl" aria-hidden="true">JIAN</div>
+  <p class="fin">THANK YOU FOR WATCHING · © 2026 JEONG JIAN</p>
+</div>
+
+<script>
+  /* ── 스크롤 = 재생 ── */
+  const total = 312;
+  const tNow = document.getElementById('tNow');
+  const pFill = document.getElementById('pFill');
+  const pState = document.getElementById('pState');
+  let idleTimer;
+  function onScroll(){
+    const h = document.documentElement;
+    const p = Math.min(Math.max(h.scrollTop / (h.scrollHeight - h.clientHeight), 0), 1);
+    const sec = total * p;
+    const m = String(Math.floor(sec/60)).padStart(2,'0');
+    const s = String(Math.floor(sec%60)).padStart(2,'0');
+    tNow.textContent = m+':'+s;
+    pFill.style.width = (p*100)+'%';
+    pState.textContent = 'PLAYING'; pState.classList.add('play');
+    const pc=document.getElementById('pcFill');
+    if(pc){pc.style.width=Math.max(p*100,2)+'%';
+      document.getElementById('pcTime').textContent=m+':'+s+' / 05:12';
+      document.getElementById('pcState').textContent='PLAYING';}
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(()=>{pState.textContent='PAUSED';pState.classList.remove('play');
+      const ps=document.getElementById('pcState'); if(ps)ps.textContent='PAUSED';},700);
+  }
+  addEventListener('scroll',onScroll,{passive:true}); onScroll();
+
+  /* ── 컷별 싱크 스크립트 ── */
+  const SCRIPTS = {
+    s1:[
+      {cue:'CUT 01', t:'병원 소개, 이벤트 페이지, 썸네일의 변화만으로 문의를 5배로 올렸다. <b>광고비는 늘리지 않았다.</b> 시작점의 문의는 월 8건.'},
+      {cue:'CUT 02', t:'동일 시술 경쟁 병원은 월 상담 50건 이상, 우리는 6~8건 — 경쟁사의 10~15% 수준. 내부에서는 "광고비를 안 써서"로 정리됐지만, <b>예산 없이 고칠 수 있는 것</b>부터 찾기로 했다.'},
+      {cue:'CUT 03', t:'해외에선 알려졌지만 국내 인지도가 낮은 시술명이라 이름만으로는 인식되지 않았다. 내가 소비자라면 뭘 검색할까 — <em>\'지방분해\'</em>. 강남언니에도 검색과 알고리즘이 있고, 팀의 목표는 브랜딩이 아니라 환자 확보였다.'},
+      {cue:'CUT 04', t:'강남언니 유저는 시술을 확정하고 <b>병원을 고르러 온 고관여 타겟</b>이다. 필요한 건 시술 설명이 아니라 확신 — 그런데 상세 페이지도 \'뺏주사\'부터 어필하고 있었다.'},
+      {cue:'CUT 05', t:'다른 병원들 목록 사이에 우리 썸네일을 직접 넣어 봤다 — 눈에 들어오지 않았다. 가슴·허리를 강조하는 <em>예전 트렌드</em>의 비키니 이미지, 2024년 이후 수정 이력 없음.'},
+      {cue:'CUT 06', t:'타 의원 지방분해 썸네일 레퍼런스는 팔뚝 라인, 탄탄한 배 — <b>건강미 중심</b>이었다. 미의 기준을 가장 빠르게 반영하는 게 피부과다. 현재 트렌드로 교체했다.'},
+      {cue:'CUT 07', t:'수정 전 랜딩은 전후 사진에 닿기 전에 <em>\'뺏주사란?\' 시술 설명</em>이 먼저였다. 고관여 타겟에게는 이미 아는 이야기 — 확신에 도달하기 전에 나간다.'},
+      {cue:'CUT 08', t:'\'지방분해\'를 타이틀 전면에, "내 얘기 같다면?" 공감 체크 다음 <em>곧장 3주 경과 전후 사진</em> — 설명 대신 확신을 먼저 보여주는 구조로 바꿨다.'},
+      {cue:'CUT 09', t:'월 8건 → <b>40건 이상.</b> 담당자도 키워드와 시술 부위 명시가 플랫폼 알고리즘 노출 증가로 이어졌다고 피드백했다. 바비톡 미러링 0 → 최대 10건. 광고비는 그대로.'}
+    ],
+    s2:[
+      {cue:'CUT 01', t:'틱톡 유저는 빠르게 넘기고, 사운드에 반응하고, 정보를 다 주면 오히려 이탈한다. 기준은 하나 — <b>3초 안에 자기 얘기로 느끼게 하는 것.</b>'},
+      {cue:'CUT 02', t:'소재가 정적 이미지 기반에 시술명 중심 카피, 컬러감과 텍스쳐도 피드와 어울리지 않았다. 이전 직장에서 영상 광고를 운영하며 체감한 것 — <em>영상 플랫폼에서 정적인 광고는 광고로만 보인다.</em>'},
+      {cue:'CUT 03', t:'배너에서 정보를 다 주는 건 독이다. 호기심을 남기거나, 타겟이 <b>"내 얘기네"</b>라고 느끼는 지점이 있어야 멈춘다.'},
+      {cue:'CUT 04', t:'정적 이미지를 움직이는 영상으로, 시술명 카피를 <em>타겟 지목형</em>으로, 정보는 최소화. 소재를 고친 게 아니라 플랫폼의 언어로 다시 만들었다.'},
+      {cue:'CUT 05', t:'디자이너는 컬러와 비주얼을, 마케터는 카피와 메시지를 먼저 본다. 알고리즘 작동 방식과 소재 변경의 필요성을 <b>데이터로 설명</b>하며 우선순위를 맞췄다.'},
+      {cue:'CUT 06', t:'CPA는 절반 이하로, <b>전환 볼륨은 100% 유지.</b> 매체 세팅이 아니라 소재가 플랫폼과 어울리는지가 변수였던 케이스.'}
+    ],
+    s3:[
+      {cue:'CUT 01', t:'광고 클릭은 정상적으로 발생하고 있었다. <b>사람들은 오고 있는데, 문의만 0건.</b> 문제는 도착한 다음이라고 판단했다.'},
+      {cue:'CUT 02', t:'소재 문제로 보고 <em>소재 교체 요청이 반복</em>되던 상황이었다. GA 행동 데이터를 열자 이탈은 특정 구간에 몰려 있었다 — 소재가 아니라 페이지였다.'},
+      {cue:'CUT 03', t:'모바일로 접속해 그 구간을 확인했다. <em>버튼이 아닌데 버튼처럼 생긴 요소</em>가 있었다. 누르고, 반응이 없고, 떠난다 — 작은 인터랙션 실패 하나가 신뢰를 깎고 있었다.'},
+      {cue:'CUT 04', t:'형사 사건 타겟의 1차 감정은 편의가 아니라 <em>노출 불안</em>이다. 그리고 가장 먼저 확인하고 싶은 건 — 내 사건과 비슷한 걸 해결한 적 있는가. 그 답이 최하단에 묻혀 있었다.'},
+      {cue:'CUT 05', t:'수정 전 구조: 소개가 위, <b>신뢰의 근거(해결 사례)가 가장 아래.</b> 방문자는 신뢰에 도달하기 전에 가짜 버튼에서 이탈하고 있었다. 화면은 재구성, 진단은 데이터 기반.'},
+      {cue:'CUT 06', t:'해결 사례를 첫 화면으로, 가짜 버튼은 제거, CTA는 <em>\'온라인 비대면 상담 신청\'</em>으로 교체해 하단 고정. 움직이는 건 화살표 하나 — 시선이 도착할 한 점만 움직인다.'},
+      {cue:'CUT 07', t:'수정 반영 3주 뒤의 메시지다. <b>대화는 재구성, 수치와 타임라인은 실제</b> — 케이스가 끝나는 실제 단위는 결국 이 한 통이다.'},
+      {cue:'CUT 08', t:'문의 0건 → <b>일 5건 이상, 월 단위 지속.</b> 퇴사 후 6개월이 지난 지금도 사이트는 이 구조 그대로 운영 중이다.'}
+    ],
+    s4:[
+      {cue:'CUT 01', t:'트래픽은 있는데 메신저 전환이 낮았다. 콘텐츠 문제이기 전에, <b>문의 버튼이 보이기는 하는가</b>부터 확인했다.'},
+      {cue:'CUT 02', t:'GA4 퍼널에서 <em>스크롤 25% 구간</em>에 이탈이 집중돼 있었다. 체류자는 있는데 문의가 없다 — 퍼널에서 위치를 좁혔다.'},
+      {cue:'CUT 03', t:'CTA의 시각 대비가 낮고 위치도 아래쪽. 메신저 아이콘은 <b>전부 검정</b>이라 어느 메신저인지 구분도 어려웠다. 보이게 만들면 전환이 따라올 거라는 가설.'},
+      {cue:'CUT 04', t:'버튼을 국가별 주요 메신저의 <em>상징 컬러</em>로 교체했다. 보는 순간 어떤 채널인지 인식되도록.'},
+      {cue:'CUT 05', t:'위치도 함께 — <b>PC는 좌측 상단, 모바일은 하단 고정.</b> 스크롤 어디에 있든 문의 동선이 끊기지 않게.'},
+      {cue:'CUT 06', t:'개선 후 GA4 풀 퍼널이다. <em>스크롤 25% 이탈 구간에서 메신저 전환이 늘었다</em> — 가설이 숫자로 검증된 화면.'},
+      {cue:'CUT 07', t:'월 25건 → <b>56건(×2.2).</b> 보이지 않으면 설득할 기회조차 없다 — 이탈률 데이터로 시각적 인지 허들을 찾아낸 케이스.'}
+    ],
+    s5:[
+      {cue:'CUT 01', t:'신규 수분크림이 \'건성\' 키워드로 들어가면 거대 브랜드들과 같은 링에 오른다. <b>이기는 위치를 먼저 정하는 것</b>이 이 프로젝트의 전부였다.'},
+      {cue:'CUT 02', t:'수분크림의 기본 전장은 경쟁 밀도도 입찰 단가도 <em>포화 상태.</em> 신규 브랜드가 예산으로 진입할 수 있는 시장이 아니었다.'},
+      {cue:'CUT 03', t:'해외 소비자의 약국 화장품 신뢰 리서치가 근거였다. 성분 민감 타겟에게 약국이라는 채널 자체가 <em>검증의 메시지</em>가 된다 — 타겟·유통·브랜딩을 한 줄로 꿴 제안.'},
+      {cue:'CUT 04', t:'전략은 채택됐고, 퇴사 후 실제 약국 입점과 유통 확장으로 이어졌다. <b>집행 수치는 기여 범위 밖이라 싣지 않는다</b> — 대신 전략이 실물이 됐다는 사실만 남긴다.'}
+    ],
+    s6:[
+      {cue:'CUT 01', t:'대만 Meta 첫 집행 후 트래픽은 급증했는데 위챗 문의 전환은 0. <b>들어오는 사람은 많아졌는데, 원하는 사람이 아니었다.</b>'},
+      {cue:'CUT 02', t:'평균 체류시간이 1분 24초에서 <em>46초로 급감.</em> 짧은 체류는 곧 관심 없는 유저의 유입 — 트래픽 증가가 성과가 아니라는 신호였다.'},
+      {cue:'CUT 03', t:'트래픽·전환 캠페인을 병행하며 동일 픽셀로 학습 — 저관여 클릭까지 전환 신호로 쌓이는 구조였다. Meta 측도 "대만은 소모성 클릭이 많다"고 답했다. 트래픽 광고를 중단해도 개선이 없자, <b>학습 데이터 자체의 문제로 확정</b>했다.'},
+      {cue:'CUT 04', t:'빠르게 이탈하는 사람들이 관심 없는 사람들이라면, 이탈하지 않는 사람들이 고관여 유저다. <em>스크롤 25% + 체류 조건</em>으로 고관여 모수를 직접 정의하고, 그 위에서 유사 타겟(LAL)을 단계적으로 확장했다.'},
+      {cue:'CUT 05', t:'체류시간이 <b>1분 24초로 돌아왔다.</b> 머신이 옳은 데이터를 배우기 시작했다는 신호 — 같은 예산, 같은 캠페인 구조에서 <em>모수의 정의만 바꾼</em> 결과다.'},
+      {cue:'CUT 06', t:'학습을 고쳐도 보는 지표가 틀리면 다시 망가진다. KPI를 CTR에서 <em>메신저 진입률</em>로 재정의하고, CS 결과가 광고 데이터와 연결되는 대시보드를 직접 만들어(Sheets·Apps Script) 리드의 질이 <b>다음 날 확인되게</b> 했다.'},
+      {cue:'CUT 07', t:'방문자 볼륨은 줄었지만 <b>리드는 2배.</b> 트래픽은 성과가 아니라 재료다 — 머신이 옳은 것을 배우자 볼륨과 질이 같이 올라왔다.'}
+    ],
+    s7:[
+      {
+            "cue": "CUT 01",
+            "t": "광고 소재를 보며 반복하던 질문 — 무엇을 멈추고 무엇을 더 볼까. <b>판단 기준을 정리하고 AI를 활용해 분석 도구와 웹 운영 화면으로 구현했다.</b>"
+      },
+      {
+            "cue": "CUT 02",
+            "t": "일본 싱글원 큐텐 운영을 위한 <b>웹 콘솔의 보고 보드.</b> 예산과 주요 성과를 모아 보고, 일별 성과·타겟·상품·리뷰·액션 기록으로 이동할 수 있게 구성했다. 내부 수치는 비공개 처리했다."
+      },
+      {
+            "cue": "CUT 03",
+            "t": "나는 업무 문제와 운영 기준, 필요한 화면을 정의하고 결과를 검토했다. <em>AI의 코드 구현 도움</em>을 받아 실제 업무에서 반복 사용할 수 있는 기능으로 연결했다."
+      },
+      {
+            "cue": "CUT 04",
+            "t": "미국 광고 분석 도구에서는 지출·기간·구매 표본이 부족하면 <b>판단 보류</b>로 남긴다. 데이터 부족과 성과 부진을 구분하는 기준을 구현했다."
+      },
+      {
+            "cue": "CUT 05",
+            "t": "소재별로 <b>잘된 점·개선할 점·담당자 메모</b>를 한 화면에 배치했다. 지표에서 발견한 단서를 다음 수정 가설로 옮기고, 실제 소재와 운영 맥락을 확인하며 검토할 수 있도록 했다."
+      },
+      {
+            "cue": "CUT 06",
+            "t": "일본 큐텐 콘솔에서는 <em>지표를 바꿔 보고 액션 시점과 추이를 함께 확인</em>할 수 있다. 무엇을 바꾼 뒤 어떤 흐름이 나타났는지 검토하되, 전후 변화만으로 효과를 단정하지 않는다."
+      },
+      {
+            "cue": "CUT 07",
+            "t": "광고 분석 도구에서 새 데이터가 있어도 폴더 이름순 때문에 과거 결과가 선택되는 문제를 수정했다. <b>최신 데이터 선택 기준과 조회 기간 표시</b>까지 검토했다."
+      },
+      {
+            "cue": "CUT 08",
+            "t": "결과는 <b>미국 광고 분석 도구와 일본 큐텐 웹 운영 콘솔의 구현.</b> 기준을 정하고, 성과를 확인하고, 다음 액션을 기록하는 구조를 만들었다. 최종 집행 판단은 담당자가 확인한다."
+      }
+]
+  };
+
+  /* ── 스트립 컨트롤러 (씬 공통) ── */
+  document.querySelectorAll('.strip-zone').forEach(zone=>{
+    const key = zone.dataset.scene;
+    const scripts = SCRIPTS[key] || [];
+    const strip = zone.querySelector('.strip');
+    const cuts = [...strip.querySelectorAll('.cut')];
+    const sText = zone.querySelector('.script-text');
+    const cueNo = zone.querySelector('.cue-no');
+    const cutNow = zone.querySelector('.cut-now');
+    const phases = [...zone.querySelectorAll('.phase')];
+    let current = -1;
+
+    function update(){
+      const center = strip.scrollLeft + strip.clientWidth/2;
+      let best = 0, bestD = Infinity;
+      cuts.forEach((c,i)=>{
+        const mid = c.offsetLeft + c.offsetWidth/2;
+        const d = Math.abs(mid - center);
+        if(d < bestD){bestD = d; best = i;}
+      });
+      if(best === current) return;
+      current = best;
+      cuts.forEach((c,i)=>c.classList.toggle('active', i===best));
+      if(cutNow) cutNow.textContent = best+1;
+      const p = +cuts[best].dataset.phase;
+      phases.forEach(ph=>ph.classList.toggle('on', +ph.dataset.p === p));
+      if(scripts[best] && sText){
+        sText.classList.add('fade');
+        setTimeout(()=>{
+          sText.innerHTML = scripts[best].t;
+          cueNo.textContent = scripts[best].cue;
+          sText.classList.remove('fade');
+        },140);
+      }
+    }
+    strip.addEventListener('scroll',()=>requestAnimationFrame(update),{passive:true});
+    update();
+  });
+
+  /* ── 정독 토글 ── */
+  document.querySelectorAll('.full-script').forEach(fs=>{
+    const btn = fs.querySelector('.fs-btn');
+    btn.addEventListener('click',()=>{
+      const open = fs.classList.toggle('open');
+      btn.setAttribute('aria-expanded',open);
+    });
+  });
+
+  /* ── 캡처 확대 (라이트박스) ── */
+  const lb = document.createElement('div');
+  lb.id = 'lb';
+  lb.innerHTML = '<span class="lb-hint pl">CLICK TO CLOSE ✕</span><img alt="원본 캡처">';
+  document.body.appendChild(lb);
+  const lbImg = lb.querySelector('img');
+  document.querySelectorAll('.zoom-btn').forEach(btn=>{
+    btn.addEventListener('click',e=>{
+      e.stopPropagation();
+      lbImg.src = btn.dataset.src;
+      lb.classList.add('show');
+    });
+  });
+  lb.addEventListener('click',()=>lb.classList.remove('show'));
+  addEventListener('keydown',e=>{if(e.key==='Escape')lb.classList.remove('show')});
+
+  /* ── 예약 캡처(crimesos 등)가 폴더에 추가되면 자리표시 숨기고 확대 버튼 노출 ── */
+  document.querySelectorAll('[data-autoshow]').forEach(btn=>{
+    const probe = new Image();
+    probe.onload = ()=>{
+      btn.style.display = 'flex';
+      const ph = btn.closest('.cut').querySelector('.shot');
+      if(ph) ph.style.display = 'none';
+    };
+    probe.src = btn.dataset.src;
+  });
+
+  /* ── BONUS 카운트업 ── */
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const fmt = n => n.toLocaleString('ko-KR');
+  const cuObs = new IntersectionObserver(entries=>{
+    entries.forEach(en=>{
+      if(!en.isIntersecting) return;
+      cuObs.unobserve(en.target);
+      const target = +en.target.dataset.count;
+      if(reduceMotion){en.target.textContent = fmt(target);return}
+      const t0 = performance.now(), dur = 1200;
+      const tick = now=>{
+        const p = Math.min((now - t0)/dur, 1);
+        en.target.textContent = fmt(Math.round(target * (1 - Math.pow(1-p,3))));
+        if(p < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+  },{threshold:.6});
+  document.querySelectorAll('.countup').forEach(el=>cuObs.observe(el));
+</script>
+</body>
+</html>
+
